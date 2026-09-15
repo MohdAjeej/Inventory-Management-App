@@ -117,7 +117,7 @@ fun ReportSection(title: String, reports: List<ReportOption>) {
             columns = GridCells.Fixed(4),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.height((reports.size / 4 + 1) * 100.dp)
+            modifier = Modifier.height(((reports.size / 4 + 1) * 100).dp)
         ) {
             items(reports.size) { index ->
                 ReportCard(reports[index])

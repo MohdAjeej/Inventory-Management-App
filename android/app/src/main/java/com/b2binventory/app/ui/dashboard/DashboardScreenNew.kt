@@ -215,7 +215,7 @@ fun ActionSection(title: String, actions: List<QuickAction>) {
             columns = GridCells.Fixed(4),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.height((actions.size / 4 + 1) * 100.dp)
+            modifier = Modifier.height(((actions.size / 4 + 1) * 100).dp)
         ) {
             items(actions.size) { index ->
                 ActionCard(actions[index])
