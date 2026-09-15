@@ -19,12 +19,12 @@ fun AddInventoryScreen(
     userId: Long,
     onNavigateBack: () -> Unit
 ) {
-    var category by remember { mutableStateOf("Ply") }
+    var category by remember { mutableStateOf("Electronics") }
     var name by remember { mutableStateOf("") }
     var brand by remember { mutableStateOf("") }
     var sku by remember { mutableStateOf("") }
     var barcode by remember { mutableStateOf("") }
-    var unit by remember { mutableStateOf("Sheet") }
+    var unit by remember { mutableStateOf("Piece") }
     var size by remember { mutableStateOf("") }
     var thickness by remember { mutableStateOf("") }
     var color by remember { mutableStateOf("") }
@@ -37,7 +37,13 @@ fun AddInventoryScreen(
     
     val scope = rememberCoroutineScope()
     
-    val categories = listOf("Ply", "Mica", "Hardware", "Door", "Sanitary", "Paint", "Other")
+    // Universal categories for ANY business type
+    val categories = listOf(
+        "Electronics", "Clothing", "Groceries", "Hardware", 
+        "Furniture", "Stationery", "Medical", "Cosmetics",
+        "Toys", "Books", "Ply", "Mica", "Door", 
+        "Sanitary", "Paint", "Services", "Other"
+    )
     
     Scaffold(
         topBar = {
