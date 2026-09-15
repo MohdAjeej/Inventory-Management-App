@@ -5,7 +5,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -191,13 +190,7 @@ fun ProductDetailsScreen(
                             onClick = onNavigateToStockHistory,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(
-                                Icons.Default.History,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("History")
+                            Text("View History")
                         }
                     }
                 }

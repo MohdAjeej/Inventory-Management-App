@@ -1,11 +1,11 @@
 server:
-  port: 8080
+  port: 8082
 
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/b2b_inventory}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: jdbc:postgresql://localhost:5432/b2b_inventory
+    username: postgres
+    password: postgres
 
   jpa:
     hibernate:

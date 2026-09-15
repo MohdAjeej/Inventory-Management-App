@@ -5,7 +5,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -70,7 +75,7 @@ fun SettingsScreen(
             )
             
             SettingsItem(
-                icon = Icons.Default.Business,
+                icon = Icons.Filled.Home,
                 title = "Business Profile",
                 subtitle = "View and edit business information",
                 onClick = { /* TODO: Navigate to business profile */ }
@@ -93,14 +98,14 @@ fun SettingsScreen(
             )
             
             SettingsItem(
-                icon = Icons.Default.Category,
+                icon = Icons.Filled.List,
                 title = "Categories",
                 subtitle = "Manage product categories",
                 onClick = { /* TODO: Navigate to categories */ }
             )
             
             SettingsItem(
-                icon = Icons.Default.Report,
+                icon = Icons.Filled.Settings,
                 title = "Reports",
                 subtitle = "View inventory and stock reports",
                 onClick = { /* TODO: Navigate to reports */ }
@@ -123,7 +128,7 @@ fun SettingsScreen(
             )
             
             SettingsItem(
-                icon = Icons.Default.Help,
+                icon = Icons.Filled.AccountCircle,
                 title = "Help & Support",
                 subtitle = "Get help with using the app",
                 onClick = { /* TODO: Navigate to help */ }
