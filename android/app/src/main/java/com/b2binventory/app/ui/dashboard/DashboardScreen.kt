@@ -25,8 +25,8 @@ fun DashboardScreen(
     onNavigateToInventory: () -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
-    // Use the new DashboardScreenNew design
-    DashboardScreenNew(
+    // Use the professional dashboard design
+    DashboardScreenPro(
         businessId = businessId,
         userId = userId,
         businessName = "My Business",
