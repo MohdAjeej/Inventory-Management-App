@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: b2b-inventory-postgres
+    environment:
+      POSTGRES_DB: b2b_inventory
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - inventory_pgdata:/var/lib/postgresql/data
+
+volumes:
+  inventory_pgdata:
