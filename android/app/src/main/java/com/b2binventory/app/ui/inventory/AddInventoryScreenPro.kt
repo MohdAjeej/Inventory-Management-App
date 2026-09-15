@@ -46,6 +46,7 @@ fun AddInventoryScreenPro(
     var minimumStock by remember { mutableStateOf("0") }
     var message by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
     
     val scope = rememberCoroutineScope()
     
@@ -57,6 +58,34 @@ fun AddInventoryScreenPro(
     )
     
     val units = listOf("Piece", "Kg", "Gram", "Liter", "ML", "Meter", "Feet", "Box", "Carton", "Dozen", "Set", "Sheet")
+    
+    // Success Dialog
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showSuccessDialog = false
+                onNavigateBack()
+            },
+            icon = {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(48.dp)
+                )
+            },
+            title = { Text("Success!") },
+            text = { Text("Product '$name' has been added successfully.") },
+            confirmButton = {
+                Button(onClick = {
+                    showSuccessDialog = false
+                    onNavigateBack()
+                }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
     
     Scaffold(
         topBar = {
@@ -379,38 +408,64 @@ fun AddInventoryScreenPro(
             item {
                 Button(
                     onClick = {
-                        val qty = quantity.toIntOrNull() ?: 0
-                        if (name.isBlank() || qty < 0 || unit.isBlank()) {
-                            message = "Please fill Product name, Quantity and Unit."
+                        // Validation
+                        if (name.isBlank()) {
+                            message = "⚠️ Product name is required"
                             return@Button
                         }
                         
+                        val qty = quantity.toIntOrNull()
+                        if (qty == null || qty < 0) {
+                            message = "⚠️ Please enter a valid quantity (0 or more)"
+                            return@Button
+                        }
+                        
+                        if (unit.isBlank()) {
+                            message = "⚠️ Please select a unit"
+                            return@Button
+                        }
+                        
+                        // Start loading
                         loading = true
                         message = ""
+                        
                         scope.launch {
                             try {
-                                ApiClient.apiService.createProduct(
+                                val product = Product(
+                                    category = category,
+                                    name = name.trim(),
+                                    brand = brand.trim().ifBlank { null },
+                                    sku = sku.trim().ifBlank { null },
+                                    barcode = barcode.trim().ifBlank { null },
+                                    unit = unit,
+                                    size = size.trim().ifBlank { null },
+                                    thickness = thickness.trim().ifBlank { null },
+                                    color = color.trim().ifBlank { null },
+                                    model = model.trim().ifBlank { null },
+                                    description = description.trim().ifBlank { null },
+                                    quantity = qty,
+                                    minimumStock = minimumStock.toIntOrNull() ?: 0
+                                )
+                                
+                                println("DEBUG: Creating product for businessId=$businessId, userId=$userId")
+                                println("DEBUG: Product data: $product")
+                                
+                                val result = ApiClient.apiService.createProduct(
                                     businessId = businessId,
                                     userId = userId,
-                                    product = Product(
-                                        category = category,
-                                        name = name,
-                                        brand = brand.ifBlank { null },
-                                        sku = sku.ifBlank { null },
-                                        barcode = barcode.ifBlank { null },
-                                        unit = unit,
-                                        size = size.ifBlank { null },
-                                        thickness = thickness.ifBlank { null },
-                                        color = color.ifBlank { null },
-                                        model = model.ifBlank { null },
-                                        description = description.ifBlank { null },
-                                        quantity = qty,
-                                        minimumStock = minimumStock.toIntOrNull() ?: 0
-                                    )
+                                    product = product
                                 )
-                                onNavigateBack()
+                                
+                                println("DEBUG: Product created successfully with ID: ${result.id}")
+                                
+                                // Show success dialog
+                                showSuccessDialog = true
+                                
                             } catch (e: Exception) {
-                                message = e.message ?: "Unable to save inventory."
+                                e.printStackTrace()
+                                message = "❌ Error: ${e.message ?: "Unable to save. Please check your internet connection and try again."}"
+                                println("DEBUG: Error creating product: ${e.message}")
+                                println("DEBUG: Full error: $e")
                             } finally {
                                 loading = false
                             }
@@ -424,10 +479,17 @@ fun AddInventoryScreenPro(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     if (loading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Saving...", style = MaterialTheme.typography.titleMedium)
+                        }
                     } else {
                         Row(
                             horizontalArrangement = Arrangement.Center,
