@@ -7,13 +7,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.b2binventory.app.ui.auth.LoginScreen
+import com.b2binventory.app.ui.auth.LoginScreenPro
 import com.b2binventory.app.ui.auth.RegisterBusinessScreen
 import com.b2binventory.app.ui.dashboard.DashboardScreen
 import com.b2binventory.app.ui.inventory.*
 import com.b2binventory.app.ui.settings.SettingsScreen
+import com.b2binventory.app.ui.splash.SplashScreen
 
 sealed class Screen(val route: String) {
+    object Splash : Screen("splash")
     object Login : Screen("login")
     object Register : Screen("register")
     object Dashboard : Screen("dashboard/{businessId}/{userId}") {
@@ -44,12 +46,22 @@ sealed class Screen(val route: String) {
 
 @Composable
 fun AppNavigation(
-    startDestination: String = Screen.Login.route,
+    startDestination: String = Screen.Splash.route,
     navController: NavHostController = rememberNavController()
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
+        composable(Screen.Splash.route) {
+            SplashScreen(
+                onSplashComplete = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
         composable(Screen.Login.route) {
-            LoginScreen(
+            LoginScreenPro(
                 onLoginSuccess = { businessId, userId ->
                     navController.navigate(Screen.Dashboard.createRoute(businessId, userId)) {
                         popUpTo(Screen.Login.route) { inclusive = true }
