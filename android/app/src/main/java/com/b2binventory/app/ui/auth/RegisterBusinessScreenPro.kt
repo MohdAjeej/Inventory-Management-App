@@ -465,15 +465,31 @@ fun RegisterBusinessScreenPro(
                                                             password = password
                                                         )
                                                     )
-                                                    val businessId = (response["businessId"] as? Number)?.toLong() ?: 0L
-                                                    val userId = (response["userId"] as? Number)?.toLong() ?: 0L
+                                                    
+                                                    // Debug logging
+                                                    android.util.Log.d("RegisterScreen", "Register response: $response")
+                                                    
+                                                    val businessId = when (val bid = response["businessId"]) {
+                                                        is Number -> bid.toLong()
+                                                        is String -> bid.toLongOrNull() ?: 0L
+                                                        else -> 0L
+                                                    }
+                                                    
+                                                    val userId = when (val uid = response["userId"]) {
+                                                        is Number -> uid.toLong()
+                                                        is String -> uid.toLongOrNull() ?: 0L
+                                                        else -> 0L
+                                                    }
+                                                    
+                                                    android.util.Log.d("RegisterScreen", "Parsed - businessId: $businessId, userId: $userId")
                                                     
                                                     if (businessId > 0 && userId > 0) {
                                                         onRegisterSuccess(businessId, userId)
                                                     } else {
-                                                        errorMessage = "Invalid response from server"
+                                                        errorMessage = "Invalid response from server. businessId=$businessId, userId=$userId"
                                                     }
                                                 } catch (e: Exception) {
+                                                    android.util.Log.e("RegisterScreen", "Registration error", e)
                                                     errorMessage = e.message ?: "Registration failed. Please try again."
                                                 } finally {
                                                     loading = false

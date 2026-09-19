@@ -317,15 +317,31 @@ fun LoginScreenPro(
                                     val response = ApiClient.apiService.login(
                                         com.b2binventory.app.data.LoginRequest(email, password)
                                     )
-                                    val businessId = (response["businessId"] as? Number)?.toLong() ?: 0L
-                                    val userId = (response["userId"] as? Number)?.toLong() ?: 0L
+                                    
+                                    // Debug logging
+                                    android.util.Log.d("LoginScreen", "Login response: $response")
+                                    
+                                    val businessId = when (val bid = response["businessId"]) {
+                                        is Number -> bid.toLong()
+                                        is String -> bid.toLongOrNull() ?: 0L
+                                        else -> 0L
+                                    }
+                                    
+                                    val userId = when (val uid = response["userId"]) {
+                                        is Number -> uid.toLong()
+                                        is String -> uid.toLongOrNull() ?: 0L
+                                        else -> 0L
+                                    }
+                                    
+                                    android.util.Log.d("LoginScreen", "Parsed - businessId: $businessId, userId: $userId")
                                     
                                     if (businessId > 0 && userId > 0) {
                                         onLoginSuccess(businessId, userId)
                                     } else {
-                                        errorMessage = "Invalid response from server"
+                                        errorMessage = "Invalid response from server. businessId=$businessId, userId=$userId"
                                     }
                                 } catch (e: Exception) {
+                                    android.util.Log.e("LoginScreen", "Login error", e)
                                     errorMessage = e.message ?: "Login failed. Please check your credentials."
                                 } finally {
                                     loading = false
