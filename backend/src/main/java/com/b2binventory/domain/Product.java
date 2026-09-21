@@ -1,5 +1,6 @@
 package com.b2binventory.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -14,6 +15,7 @@ import java.time.Instant;
                 )
         }
 )
+@JsonIgnoreProperties({"business"})
 public class Product {
 
     @Id

@@ -1,6 +1,10 @@
 package com.b2binventory.app.ui.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -9,10 +13,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.b2binventory.app.ui.auth.LoginScreenPro
 import com.b2binventory.app.ui.auth.RegisterBusinessScreen
-import com.b2binventory.app.ui.dashboard.DashboardScreen
+import com.b2binventory.app.ui.dashboard.DashboardScreenPro
 import com.b2binventory.app.ui.inventory.*
 import com.b2binventory.app.ui.settings.SettingsScreen
 import com.b2binventory.app.ui.splash.SplashScreen
+import com.b2binventory.app.ui.analytics.AnalyticsScreen
+import com.b2binventory.app.ui.receipts.ReceiptsScreen
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
@@ -41,6 +47,12 @@ sealed class Screen(val route: String) {
     }
     object Settings : Screen("settings/{businessId}/{userId}") {
         fun createRoute(businessId: Long, userId: Long) = "settings/$businessId/$userId"
+    }
+    object Analytics : Screen("analytics/{businessId}/{userId}") {
+        fun createRoute(businessId: Long, userId: Long) = "analytics/$businessId/$userId"
+    }
+    object Receipts : Screen("receipts/{businessId}/{userId}") {
+        fun createRoute(businessId: Long, userId: Long) = "receipts/$businessId/$userId"
     }
 }
 
@@ -96,16 +108,37 @@ fun AppNavigation(
             val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
             val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
             
-            DashboardScreen(
-                businessId = businessId,
-                userId = userId,
-                onNavigateToInventory = {
-                    navController.navigate(Screen.Inventory.createRoute(businessId, userId))
-                },
-                onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.createRoute(businessId, userId))
+            Scaffold(
+                bottomBar = {
+                    BottomNavigationBar(
+                        navController = navController,
+                        businessId = businessId,
+                        userId = userId
+                    )
                 }
-            )
+            ) { paddingValues ->
+                Box(modifier = Modifier.padding(paddingValues)) {
+                    DashboardScreenPro(
+                        businessId = businessId,
+                        userId = userId,
+                        onNavigateToInventory = {
+                            navController.navigate(Screen.Inventory.createRoute(businessId, userId))
+                        },
+                        onNavigateToReports = {
+                            // Navigate to reports when implemented
+                        },
+                        onNavigateToParties = {
+                            // Navigate to parties when implemented
+                        },
+                        onNavigateToSettings = {
+                            navController.navigate(Screen.Settings.createRoute(businessId, userId))
+                        },
+                        onAddProduct = {
+                            navController.navigate(Screen.AddInventory.createRoute(businessId, userId))
+                        }
+                    )
+                }
+            }
         }
         
         composable(
@@ -118,17 +151,28 @@ fun AppNavigation(
             val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
             val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
             
-            InventoryScreen(
-                businessId = businessId,
-                userId = userId,
-                onNavigateToAddInventory = {
-                    navController.navigate(Screen.AddInventory.createRoute(businessId, userId))
-                },
-                onNavigateToProductDetails = { productId ->
-                    navController.navigate(Screen.ProductDetails.createRoute(productId, businessId, userId))
-                },
-                onNavigateBack = { navController.popBackStack() }
-            )
+            Scaffold(
+                bottomBar = {
+                    BottomNavigationBar(
+                        navController = navController,
+                        businessId = businessId,
+                        userId = userId
+                    )
+                }
+            ) { paddingValues ->
+                Box(modifier = Modifier.padding(paddingValues)) {
+                    InventoryListScreenFunctional(
+                        businessId = businessId,
+                        onNavigateBack = { navController.popBackStack() },
+                        onAddProduct = {
+                            navController.navigate(Screen.AddInventory.createRoute(businessId, userId))
+                        },
+                        onProductClick = { product ->
+                            navController.navigate(Screen.ProductDetails.createRoute(product.id ?: 0L, businessId, userId))
+                        }
+                    )
+                }
+            }
         }
         
         composable(
@@ -141,10 +185,11 @@ fun AppNavigation(
             val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
             val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
             
-            AddInventoryScreen(
+            AddProductScreenFunctional(
                 businessId = businessId,
                 userId = userId,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onProductSaved = { navController.popBackStack() }
             )
         }
         
@@ -244,16 +289,84 @@ fun AppNavigation(
             val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
             val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
             
-            SettingsScreen(
-                businessId = businessId,
-                userId = userId,
-                onNavigateBack = { navController.popBackStack() },
-                onLogout = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
+            Scaffold(
+                bottomBar = {
+                    BottomNavigationBar(
+                        navController = navController,
+                        businessId = businessId,
+                        userId = userId
+                    )
                 }
+            ) { paddingValues ->
+                Box(modifier = Modifier.padding(paddingValues)) {
+                    SettingsScreen(
+                        businessId = businessId,
+                        userId = userId,
+                        onNavigateBack = { navController.popBackStack() },
+                        onLogout = {
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    )
+                }
+            }
+        }
+        
+        composable(
+            route = Screen.Analytics.route,
+            arguments = listOf(
+                navArgument("businessId") { type = NavType.LongType },
+                navArgument("userId") { type = NavType.LongType }
             )
+        ) { backStackEntry ->
+            val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
+            val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
+            
+            Scaffold(
+                bottomBar = {
+                    BottomNavigationBar(
+                        navController = navController,
+                        businessId = businessId,
+                        userId = userId
+                    )
+                }
+            ) { paddingValues ->
+                Box(modifier = Modifier.padding(paddingValues)) {
+                    AnalyticsScreen(
+                        businessId = businessId,
+                        userId = userId
+                    )
+                }
+            }
+        }
+        
+        composable(
+            route = Screen.Receipts.route,
+            arguments = listOf(
+                navArgument("businessId") { type = NavType.LongType },
+                navArgument("userId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
+            val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
+            
+            Scaffold(
+                bottomBar = {
+                    BottomNavigationBar(
+                        navController = navController,
+                        businessId = businessId,
+                        userId = userId
+                    )
+                }
+            ) { paddingValues ->
+                Box(modifier = Modifier.padding(paddingValues)) {
+                    ReceiptsScreen(
+                        businessId = businessId,
+                        userId = userId
+                    )
+                }
+            }
         }
     }
 }
