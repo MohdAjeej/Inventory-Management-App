@@ -36,4 +36,13 @@ interface ApiService {
         @Path("id") id: Long,
         @Query("businessId") businessId: Long
     ): List<StockMovement>
+
+    @POST("api/stock-adjustments")
+    suspend fun adjustStock(@Body request: StockAdjustmentRequest): StockAdjustmentResponse
+
+    @GET("api/stock-adjustments/product/{productId}")
+    suspend fun getStockHistory(
+        @Path("productId") productId: Long,
+        @Query("type") type: String? = null
+    ): List<StockAdjustmentResponse>
 }

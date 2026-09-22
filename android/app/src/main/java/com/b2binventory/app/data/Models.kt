@@ -89,3 +89,27 @@ data class RegisterResponse(
     val businessId: Long,
     val userId: Long
 )
+
+data class StockAdjustmentRequest(
+    val productId: Long,
+    val businessId: Long,
+    val userId: Long,
+    val type: String, // "ADDED" or "REDUCED"
+    val quantity: Int,
+    val reason: String,
+    val notes: String? = null
+)
+
+data class StockAdjustmentResponse(
+    val id: Long,
+    val productId: Long,
+    val productName: String,
+    val type: String,
+    val quantity: Int,
+    val stockBefore: Int,
+    val stockAfter: Int,
+    val reason: String,
+    val notes: String?,
+    val addedBy: String,
+    val adjustedAt: String
+)

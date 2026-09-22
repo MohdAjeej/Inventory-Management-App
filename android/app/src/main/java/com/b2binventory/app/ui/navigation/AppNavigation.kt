@@ -45,6 +45,17 @@ sealed class Screen(val route: String) {
     object StockAdjustment : Screen("stock_adjustment/{productId}/{businessId}/{userId}") {
         fun createRoute(productId: Long, businessId: Long, userId: Long) = "stock_adjustment/$productId/$businessId/$userId"
     }
+    object StockAdjustmentConfirm : Screen("stock_adjustment_confirm/{productId}/{businessId}/{userId}/{adjustmentType}/{quantity}/{reason}/{notes}") {
+        fun createRoute(
+            productId: Long, 
+            businessId: Long, 
+            userId: Long, 
+            adjustmentType: String, 
+            quantity: Int, 
+            reason: String, 
+            notes: String
+        ) = "stock_adjustment_confirm/$productId/$businessId/$userId/$adjustmentType/$quantity/${java.net.URLEncoder.encode(reason, "UTF-8")}/${java.net.URLEncoder.encode(notes, "UTF-8")}"
+    }
     object StockHistory : Screen("stock_history/{productId}/{businessId}") {
         fun createRoute(productId: Long, businessId: Long) = "stock_history/$productId/$businessId"
     }
@@ -260,6 +271,8 @@ fun AppNavigation(
                 navArgument("userId") { type = NavType.LongType }
             )
         ) { backStackEntry ->
+            val context = LocalContext.current
+            val sessionManager = remember { SessionManager(context) }
             val productId = backStackEntry.arguments?.getLong("productId") ?: 0L
             val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
             val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
@@ -268,6 +281,63 @@ fun AppNavigation(
                 productId = productId,
                 businessId = businessId,
                 userId = userId,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToConfirm = { adjType, qty, reason, notes ->
+                    navController.navigate(
+                        Screen.StockAdjustmentConfirm.createRoute(
+                            productId, businessId, userId, adjType, qty, reason, notes
+                        )
+                    )
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.StockAdjustmentConfirm.route,
+            arguments = listOf(
+                navArgument("productId") { type = NavType.LongType },
+                navArgument("businessId") { type = NavType.LongType },
+                navArgument("userId") { type = NavType.LongType },
+                navArgument("adjustmentType") { type = NavType.StringType },
+                navArgument("quantity") { type = NavType.IntType },
+                navArgument("reason") { type = NavType.StringType },
+                navArgument("notes") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val context = LocalContext.current
+            val sessionManager = remember { SessionManager(context) }
+            val productId = backStackEntry.arguments?.getLong("productId") ?: 0L
+            val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
+            val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
+            val adjustmentType = backStackEntry.arguments?.getString("adjustmentType") ?: "ADDED"
+            val quantity = backStackEntry.arguments?.getInt("quantity") ?: 0
+            val reason = java.net.URLDecoder.decode(
+                backStackEntry.arguments?.getString("reason") ?: "", 
+                "UTF-8"
+            )
+            val notes = java.net.URLDecoder.decode(
+                backStackEntry.arguments?.getString("notes") ?: "", 
+                "UTF-8"
+            )
+            val userName = sessionManager.getUserName() ?: "Unknown User"
+            
+            StockAdjustmentConfirmScreen(
+                productId = productId,
+                businessId = businessId,
+                userId = userId,
+                adjustmentType = adjustmentType,
+                quantity = quantity,
+                reason = reason,
+                notes = if (notes.isEmpty()) null else notes,
+                userName = userName,
+                onConfirm = {
+                    // Pop back to product details after successful update
+                    navController.popBackStack(
+                        Screen.ProductDetails.createRoute(productId, businessId, userId),
+                        inclusive = false
+                    )
+                },
+                onEditDetails = { navController.popBackStack() },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
