@@ -113,3 +113,51 @@ data class StockAdjustmentResponse(
     val addedBy: String,
     val adjustedAt: String
 )
+
+// Category Models
+data class Category(
+    val id: Long? = null,
+    val name: String,
+    val description: String? = null,
+    val iconUrl: String? = null,
+    val status: String = "Active",
+    val businessId: Long,
+    val productCount: Int = 0,
+    val createdAt: String? = null,
+    val updatedAt: String? = null
+)
+
+data class CategoryRequest(
+    val name: String,
+    val description: String? = null,
+    val iconUrl: String? = null,
+    val businessId: Long,
+    val status: String = "Active"
+)
+
+data class CategoryResponse(
+    val id: Long,
+    val name: String,
+    val description: String?,
+    val iconUrl: String?,
+    val status: String,
+    val businessId: Long,
+    val productCount: Int,
+    val createdAt: String,
+    val updatedAt: String
+)
+
+data class CategoryStatsResponse(
+    val totalCategories: Long,
+    val activeCategories: Long,
+    val inactiveCategories: Long,
+    val categoriesInUse: Long,
+    val totalProducts: Long
+)
+
+data class CategoriesPageResponse(
+    val categories: List<CategoryResponse>,
+    val currentPage: Int,
+    val totalItems: Long,
+    val totalPages: Int
+)

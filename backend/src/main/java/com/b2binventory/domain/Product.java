@@ -25,8 +25,12 @@ public class Product {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Business business;
 
-    @Column(nullable = false)
-    private String category;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
+    
+    @Column(name = "category_name")
+    private String categoryName;
 
     @Column(nullable = false)
     private String name;
@@ -73,12 +77,20 @@ public class Product {
         this.business = business;
     }
 
-    public String getCategory() {
+    public Category getCategory() {
         return category;
     }
 
-    public void setCategory(String category) {
+    public void setCategory(Category category) {
         this.category = category;
+    }
+    
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
     }
 
     public String getName() {

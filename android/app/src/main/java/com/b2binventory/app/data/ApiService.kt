@@ -50,4 +50,45 @@ interface ApiService {
     suspend fun getBusinessStockHistory(
         @Path("businessId") businessId: Long
     ): List<StockAdjustmentResponse>
+    
+    // Category endpoints
+    @GET("api/categories/business/{businessId}")
+    suspend fun getCategories(
+        @Path("businessId") businessId: Long,
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 10,
+        @Query("search") search: String? = null,
+        @Query("status") status: String? = null
+    ): CategoriesPageResponse
+    
+    @GET("api/categories/business/{businessId}/stats")
+    suspend fun getCategoryStats(
+        @Path("businessId") businessId: Long
+    ): CategoryStatsResponse
+    
+    @GET("api/categories/{id}")
+    suspend fun getCategoryById(
+        @Path("id") id: Long
+    ): CategoryResponse
+    
+    @POST("api/categories")
+    suspend fun createCategory(
+        @Body request: CategoryRequest
+    ): CategoryResponse
+    
+    @PUT("api/categories/{id}")
+    suspend fun updateCategory(
+        @Path("id") id: Long,
+        @Body request: CategoryRequest
+    ): CategoryResponse
+    
+    @PATCH("api/categories/{id}/toggle-status")
+    suspend fun toggleCategoryStatus(
+        @Path("id") id: Long
+    ): CategoryResponse
+    
+    @DELETE("api/categories/{id}")
+    suspend fun deleteCategory(
+        @Path("id") id: Long
+    ): Map<String, String>
 }

@@ -43,6 +43,7 @@ fun DashboardScreenPro(
     onNavigateToReports: () -> Unit,
     onNavigateToParties: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToCategories: () -> Unit = {},
     onAddProduct: () -> Unit,
     userName: String = "User",
     userRole: String = "Admin",
@@ -625,9 +626,26 @@ fun DashboardScreenPro(
                         ) {
                             QuickActionItem(Icons.Default.Inventory, "Inventory", Color(0xFF2196F3), onNavigateToInventory)
                             QuickActionItem(Icons.Default.Add, "Add Product", Color(0xFF4CAF50), onAddProduct)
+                            QuickActionItem(Icons.Default.Category, "Categories", Color(0xFFE91E63), onNavigateToCategories)
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
                             QuickActionItem(Icons.Default.SwapVert, "Adjust Stock", Color(0xFFFFA726), { })
                             QuickActionItem(Icons.Default.Description, "Reports", Color(0xFF9C27B0), onNavigateToReports)
                             QuickActionItem(Icons.Default.People, "Parties", Color(0xFF00BCD4), onNavigateToParties)
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
                             QuickActionItem(Icons.Default.Settings, "Settings", Color(0xFF607D8B), onNavigateToSettings)
                         }
                     }

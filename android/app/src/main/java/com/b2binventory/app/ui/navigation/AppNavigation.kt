@@ -68,6 +68,9 @@ sealed class Screen(val route: String) {
     object OutOfStockProducts : Screen("out_of_stock_products/{businessId}/{userId}") {
         fun createRoute(businessId: Long, userId: Long) = "out_of_stock_products/$businessId/$userId"
     }
+    object CategoriesManagement : Screen("categories_management/{businessId}/{userId}") {
+        fun createRoute(businessId: Long, userId: Long) = "categories_management/$businessId/$userId"
+    }
     object Settings : Screen("settings/{businessId}/{userId}") {
         fun createRoute(businessId: Long, userId: Long) = "settings/$businessId/$userId"
     }
@@ -159,6 +162,9 @@ fun AppNavigation(
                         },
                         onNavigateToSettings = {
                             navController.navigate(Screen.Settings.createRoute(businessId, userId))
+                        },
+                        onNavigateToCategories = {
+                            navController.navigate(Screen.CategoriesManagement.createRoute(businessId, userId))
                         },
                         onAddProduct = {
                             navController.navigate(Screen.AddInventory.createRoute(businessId, userId))
@@ -425,6 +431,24 @@ fun AppNavigation(
                         Screen.StockAdjustment.createRoute(productId, businessId, userId)
                     )
                 }
+            )
+        }
+        
+        composable(
+            route = Screen.CategoriesManagement.route,
+            arguments = listOf(
+                navArgument("businessId") { type = NavType.LongType },
+                navArgument("userId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val context = LocalContext.current
+            val sessionManager = remember { SessionManager(context) }
+            val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
+            val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
+            
+            com.b2binventory.app.ui.categories.CategoriesManagementScreen(
+                navController = navController,
+                sessionManager = sessionManager
             )
         }
         
