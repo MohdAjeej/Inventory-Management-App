@@ -4,13 +4,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.b2binventory.app.data.SessionManager
 import com.b2binventory.app.ui.auth.LoginScreenPro
 import com.b2binventory.app.ui.auth.RegisterBusinessScreen
 import com.b2binventory.app.ui.dashboard.DashboardScreenPro
@@ -105,8 +108,12 @@ fun AppNavigation(
                 navArgument("userId") { type = NavType.LongType }
             )
         ) { backStackEntry ->
+            val context = LocalContext.current
+            val sessionManager = remember { SessionManager(context) }
             val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
             val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
+            val userName = sessionManager.getUserName() ?: "User"
+            val userRole = sessionManager.getUserRole() ?: "Admin"
             
             Scaffold(
                 bottomBar = {
@@ -135,7 +142,10 @@ fun AppNavigation(
                         },
                         onAddProduct = {
                             navController.navigate(Screen.AddInventory.createRoute(businessId, userId))
-                        }
+                        },
+                        userName = userName,
+                        userRole = userRole,
+                        businessName = "My Business"
                     )
                 }
             }

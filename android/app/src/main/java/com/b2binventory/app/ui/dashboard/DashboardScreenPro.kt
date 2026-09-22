@@ -43,11 +43,12 @@ fun DashboardScreenPro(
     onNavigateToReports: () -> Unit,
     onNavigateToParties: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onAddProduct: () -> Unit
+    onAddProduct: () -> Unit,
+    userName: String = "User",
+    userRole: String = "Admin",
+    businessName: String = "My Business"
 ) {
-    val userName = "Mohd Ajeej"
-    val userRole = "Admin"
-    val location = "ABC Traders\nDistributor | Noida, Uttar Pradesh"
+    val location = "$businessName\nDistributor | India"
     
     var products by remember { mutableStateOf<List<Product>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }

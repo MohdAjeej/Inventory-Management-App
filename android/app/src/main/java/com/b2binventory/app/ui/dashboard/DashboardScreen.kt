@@ -29,10 +29,10 @@ fun DashboardScreen(
     DashboardScreenPro(
         businessId = businessId,
         userId = userId,
-        businessName = "My Business",
         onNavigateToInventory = onNavigateToInventory,
-        onNavigateToVouchers = { /* TODO */ },
         onNavigateToReports = { /* TODO */ },
-        onNavigateToParties = { /* TODO */ }
+        onNavigateToParties = { /* TODO */ },
+        onNavigateToSettings = onNavigateToSettings,
+        onAddProduct = onNavigateToInventory
     )
 }

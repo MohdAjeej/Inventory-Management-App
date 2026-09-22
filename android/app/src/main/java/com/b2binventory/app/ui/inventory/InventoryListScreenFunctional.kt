@@ -24,6 +24,17 @@ import com.b2binventory.app.data.ApiClient
 import com.b2binventory.app.data.Product
 import kotlinx.coroutines.launch
 
+enum class StockStatus {
+    IN_STOCK,
+    LOW_STOCK,
+    OUT_OF_STOCK
+}
+
+data class CategoryFilter(
+    val name: String,
+    val count: Int
+)
+
 fun getStockStatusFunc(product: Product): StockStatus {
     return when {
         product.quantity == 0 -> StockStatus.OUT_OF_STOCK
@@ -123,342 +134,346 @@ fun InventoryListScreenFunctional(
         sortedProducts.filter { it.category == selectedCategory }
     }
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
-    ) {
-        // Top Bar
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = Color.White,
-            shadowElevation = 2.dp
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddProduct,
+                containerColor = Color(0xFF2196F3),
+                contentColor = Color.White,
+                modifier = Modifier.size(64.dp)
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Add Product",
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        },
+        floatingActionButtonPosition = FabPosition.End
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF5F5F5))
+                .padding(paddingValues)
         ) {
-            Column {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+            // Top Bar
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color.White,
+                shadowElevation = 2.dp
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Inventory",
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1A1A1A)
+                            )
+                            Text(
+                                "${filteredProducts.size} products",
+                                fontSize = 13.sp,
+                                color = Color(0xFF666666)
+                            )
+                        }
+                        
+                        IconButton(
+                            onClick = { fetchProducts() },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(Color(0xFFF5F5F5), RoundedCornerShape(10.dp))
+                        ) {
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = "Refresh",
+                                tint = if (loading) Color(0xFF2196F3) else Color(0xFF666666)
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Content
+            if (loading && products.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "Inventory",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1A1A1A)
-                        )
-                        Text(
-                            "${filteredProducts.size} products",
-                            fontSize = 13.sp,
-                            color = Color(0xFF666666)
+                    CircularProgressIndicator(color = Color(0xFF2196F3))
+                }
+            } else if (errorMessage.isNotEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(errorMessage, color = Color.Red)
+                        Button(
+                            onClick = { fetchProducts() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF2196F3)
+                            )
+                        ) {
+                            Text("Retry")
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Search Bar
+                    item {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { 
+                                Text(
+                                    "Search products by name, SKU, brand...",
+                                    color = Color(0xFF999999),
+                                    fontSize = 14.sp
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = Color(0xFF666666)
+                                )
+                            },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Clear",
+                                            tint = Color(0xFF666666)
+                                        )
+                                    }
+                                }
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF2196F3),
+                                unfocusedBorderColor = Color(0xFFE0E0E0),
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
                         )
                     }
                     
-                    IconButton(
-                        onClick = { fetchProducts() },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(Color(0xFFF5F5F5), RoundedCornerShape(10.dp))
-                    ) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = "Refresh",
-                            tint = if (loading) Color(0xFF2196F3) else Color(0xFF666666)
-                        )
-                    }
-                }
-            }
-        }
-        
-        // Content
-        if (loading && products.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = Color(0xFF2196F3))
-            }
-        } else if (errorMessage.isNotEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(errorMessage, color = Color.Red)
-                    Button(
-                        onClick = { fetchProducts() },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF2196F3)
-                        )
-                    ) {
-                        Text("Retry")
-                    }
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Search Bar
-                item {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { 
-                            Text(
-                                "Search products by name, SKU, brand...",
-                                color = Color(0xFF999999),
-                                fontSize = 14.sp
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = null,
-                                tint = Color(0xFF666666)
-                            )
-                        },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "Clear",
-                                        tint = Color(0xFF666666)
-                                    )
+                    // Filter Chips Row
+                    item {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(categoryFilters) { filter ->
+                                val isSelected = if (filter.name == "All") {
+                                    selectedCategory == null || selectedCategory == "All"
+                                } else {
+                                    selectedCategory == filter.name
                                 }
-                            }
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF2196F3),
-                            unfocusedBorderColor = Color(0xFFE0E0E0),
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true
-                    )
-                }
-                
-                // Filter Chips Row
-                item {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(categoryFilters) { filter ->
-                            val isSelected = if (filter.name == "All") {
-                                selectedCategory == null || selectedCategory == "All"
-                            } else {
-                                selectedCategory == filter.name
-                            }
-                            
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = {
-                                    selectedCategory = if (filter.name == "All") null else filter.name
-                                },
-                                label = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        if (filter.name != "All") {
+                                
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = {
+                                        selectedCategory = if (filter.name == "All") null else filter.name
+                                    },
+                                    label = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            if (filter.name != "All") {
+                                                Text(
+                                                    getCategoryEmoji(filter.name),
+                                                    fontSize = 14.sp
+                                                )
+                                            }
                                             Text(
-                                                getCategoryEmoji(filter.name),
-                                                fontSize = 14.sp
+                                                filter.name,
+                                                fontSize = 13.sp,
+                                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                            )
+                                            Text(
+                                                "(${filter.count})",
+                                                fontSize = 12.sp,
+                                                color = if (isSelected) Color.White.copy(alpha = 0.9f) else Color(0xFF999999)
                                             )
                                         }
-                                        Text(
-                                            filter.name,
-                                            fontSize = 13.sp,
-                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                                        )
-                                        Text(
-                                            "(${filter.count})",
-                                            fontSize = 12.sp,
-                                            color = if (isSelected) Color.White.copy(alpha = 0.9f) else Color(0xFF999999)
-                                        )
-                                    }
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color(0xFF2196F3),
-                                    selectedLabelColor = Color.White,
-                                    containerColor = Color.White,
-                                    labelColor = Color(0xFF333333)
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFF2196F3),
+                                        selectedLabelColor = Color.White,
+                                        containerColor = Color.White,
+                                        labelColor = Color(0xFF333333)
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
-                }
-                
-                // Sort and View Mode Row
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box {
-                            OutlinedButton(
-                                onClick = { showSortMenu = true },
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color.White
-                                ),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    
+                    // Sort and View Mode Row
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box {
+                                OutlinedButton(
+                                    onClick = { showSortMenu = true },
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(10.dp)
                                 ) {
-                                    Icon(
-                                        Icons.Default.Sort,
-                                        contentDescription = null,
-                                        tint = Color(0xFF2196F3),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        sortBy,
-                                        fontSize = 13.sp,
-                                        color = Color(0xFF333333)
-                                    )
-                                    Icon(
-                                        Icons.Default.ArrowDropDown,
-                                        contentDescription = null,
-                                        tint = Color(0xFF666666)
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Sort,
+                                            contentDescription = null,
+                                            tint = Color(0xFF2196F3),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            sortBy,
+                                            fontSize = 13.sp,
+                                            color = Color(0xFF333333)
+                                        )
+                                        Icon(
+                                            Icons.Default.ArrowDropDown,
+                                            contentDescription = null,
+                                            tint = Color(0xFF666666)
+                                        )
+                                    }
+                                }
+                                
+                                DropdownMenu(
+                                    expanded = showSortMenu,
+                                    onDismissRequest = { showSortMenu = false }
+                                ) {
+                                    listOf(
+                                        "Name (A - Z)",
+                                        "Name (Z - A)",
+                                        "Stock (High - Low)",
+                                        "Stock (Low - High)"
+                                    ).forEach { option ->
+                                        DropdownMenuItem(
+                                            text = { Text(option, fontSize = 14.sp) },
+                                            onClick = {
+                                                sortBy = option
+                                                showSortMenu = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
                             
-                            DropdownMenu(
-                                expanded = showSortMenu,
-                                onDismissRequest = { showSortMenu = false }
-                            ) {
-                                listOf(
-                                    "Name (A - Z)",
-                                    "Name (Z - A)",
-                                    "Stock (High - Low)",
-                                    "Stock (Low - High)"
-                                ).forEach { option ->
-                                    DropdownMenuItem(
-                                        text = { Text(option, fontSize = 14.sp) },
-                                        onClick = {
-                                            sortBy = option
-                                            showSortMenu = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                        
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            IconButton(
-                                onClick = { viewMode = "List" },
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(
-                                        if (viewMode == "List") Color(0xFF2196F3) else Color.White,
-                                        RoundedCornerShape(10.dp)
-                                    )
-                            ) {
-                                Icon(
-                                    Icons.Default.List,
-                                    contentDescription = "List View",
-                                    tint = if (viewMode == "List") Color.White else Color(0xFF666666)
-                                )
-                            }
-                            IconButton(
-                                onClick = { viewMode = "Grid" },
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(
-                                        if (viewMode == "Grid") Color(0xFF2196F3) else Color.White,
-                                        RoundedCornerShape(10.dp)
-                                    )
-                            ) {
-                                Icon(
-                                    Icons.Default.GridView,
-                                    contentDescription = "Grid View",
-                                    tint = if (viewMode == "Grid") Color.White else Color(0xFF666666)
-                                )
-                            }
-                        }
-                    }
-                }
-                
-                // Products List
-                if (filteredProducts.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 48.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Inventory,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    tint = Color(0xFFCCCCCC)
-                                )
-                                Text(
-                                    "No products found",
-                                    fontSize = 16.sp,
-                                    color = Color(0xFF999999)
-                                )
-                                Button(
-                                    onClick = onAddProduct,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFF2196F3)
-                                    ),
-                                    shape = RoundedCornerShape(12.dp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                IconButton(
+                                    onClick = { viewMode = "List" },
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(
+                                            if (viewMode == "List") Color(0xFF2196F3) else Color.White,
+                                            RoundedCornerShape(10.dp)
+                                        )
                                 ) {
-                                    Icon(Icons.Default.Add, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Add Product")
+                                    Icon(
+                                        Icons.Default.List,
+                                        contentDescription = "List View",
+                                        tint = if (viewMode == "List") Color.White else Color(0xFF666666)
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { viewMode = "Grid" },
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(
+                                            if (viewMode == "Grid") Color(0xFF2196F3) else Color.White,
+                                            RoundedCornerShape(10.dp)
+                                        )
+                                ) {
+                                    Icon(
+                                        Icons.Default.GridView,
+                                        contentDescription = "Grid View",
+                                        tint = if (viewMode == "Grid") Color.White else Color(0xFF666666)
+                                    )
                                 }
                             }
                         }
                     }
-                } else {
-                    items(filteredProducts) { product ->
-                        ProductCardImproved(
-                            product = product,
-                            onClick = { onProductClick(product) }
-                        )
+                    
+                    // Products List
+                    if (filteredProducts.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 48.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Inventory,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(64.dp),
+                                        tint = Color(0xFFCCCCCC)
+                                    )
+                                    Text(
+                                        "No products found",
+                                        fontSize = 16.sp,
+                                        color = Color(0xFF999999)
+                                    )
+                                    Button(
+                                        onClick = onAddProduct,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFF2196F3)
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Add Product")
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        items(filteredProducts) { product ->
+                            ProductCardImproved(
+                                product = product,
+                                onClick = { onProductClick(product) }
+                            )
+                        }
+                    }
+                    
+                    // Bottom Spacer for FAB
+                    item {
+                        Spacer(modifier = Modifier.height(80.dp))
                     }
                 }
-                
-                // Bottom Spacer for FAB
-                item {
-                    Spacer(modifier = Modifier.height(80.dp))
-                }
-            }
-        }
-        
-        // FAB for Add Product
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.BottomEnd
-        ) {
-            FloatingActionButton(
-                onClick = onAddProduct,
-                modifier = Modifier.padding(16.dp),
-                containerColor = Color(0xFF2196F3),
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Product")
             }
         }
     }
@@ -595,15 +610,4 @@ fun ProductCardImproved(
             }
         }
     }
-}
-
-data class CategoryFilter(
-    val name: String,
-    val count: Int
-)
-
-enum class StockStatus {
-    IN_STOCK,
-    LOW_STOCK,
-    OUT_OF_STOCK
 }

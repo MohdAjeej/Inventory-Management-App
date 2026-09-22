@@ -1,21 +1,25 @@
 package com.b2binventory.app.ui.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.b2binventory.app.data.SessionManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +29,12 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onLogout: () -> Unit
 ) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    val userName = sessionManager.getUserName() ?: "User"
+    val userEmail = sessionManager.getUserEmail() ?: "user@example.com"
+    val userRole = sessionManager.getUserRole() ?: "Admin"
+    
     var showLogoutDialog by remember { mutableStateOf(false) }
     
     if (showLogoutDialog) {
@@ -34,10 +44,11 @@ fun SettingsScreen(
             text = { Text("Are you sure you want to logout?") },
             confirmButton = {
                 TextButton(onClick = {
+                    sessionManager.logout()
                     showLogoutDialog = false
                     onLogout()
                 }) {
-                    Text("Logout")
+                    Text("Logout", color = Color(0xFFF44336))
                 }
             },
             dismissButton = {
@@ -50,22 +61,116 @@ fun SettingsScreen(
     
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                navigationIcon = {
+            Surface(
+                color = Color.White,
+                shadowElevation = 2.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color(0xFF1A1A1A)
+                        )
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Settings",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1A1A1A)
+                    )
                 }
-            )
+            }
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color(0xFFF5F5F5))
                 .padding(paddingValues)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            // User Profile Card
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                shadowElevation = 2.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Avatar
+                    Surface(
+                        modifier = Modifier.size(64.dp),
+                        shape = CircleShape,
+                        color = Color(0xFF2196F3)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = userName.firstOrNull()?.uppercase() ?: "U",
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                    
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = userName,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1A1A1A)
+                        )
+                        Text(
+                            text = userEmail,
+                            fontSize = 13.sp,
+                            color = Color(0xFF666666)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF2196F3).copy(alpha = 0.1f)
+                        ) {
+                            Text(
+                                text = userRole,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF2196F3),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                    
+                    IconButton(
+                        onClick = { /* Edit profile */ },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color(0xFFF5F5F5), RoundedCornerShape(10.dp))
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edit Profile",
+                            tint = Color(0xFF666666),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
             
             Text(
                 text = "Business",
