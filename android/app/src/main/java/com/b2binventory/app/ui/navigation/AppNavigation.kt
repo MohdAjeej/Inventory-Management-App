@@ -59,6 +59,9 @@ sealed class Screen(val route: String) {
     object StockHistory : Screen("stock_history/{productId}/{businessId}") {
         fun createRoute(productId: Long, businessId: Long) = "stock_history/$productId/$businessId"
     }
+    object StockHistoryAll : Screen("stock_history_all/{businessId}/{userId}") {
+        fun createRoute(businessId: Long, userId: Long) = "stock_history_all/$businessId/$userId"
+    }
     object Settings : Screen("settings/{businessId}/{userId}") {
         fun createRoute(businessId: Long, userId: Long) = "settings/$businessId/$userId"
     }
@@ -354,6 +357,22 @@ fun AppNavigation(
             
             StockHistoryScreen(
                 productId = productId,
+                businessId = businessId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(
+            route = Screen.StockHistoryAll.route,
+            arguments = listOf(
+                navArgument("businessId") { type = NavType.LongType },
+                navArgument("userId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
+            val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
+            
+            StockHistoryScreenComprehensive(
                 businessId = businessId,
                 onNavigateBack = { navController.popBackStack() }
             )

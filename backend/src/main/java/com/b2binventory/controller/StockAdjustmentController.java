@@ -14,7 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -128,5 +130,31 @@ public class StockAdjustmentController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/business/{businessId}/summary")
+    public ResponseEntity<Map<String, Object>> getBusinessSummary(
+            @PathVariable Long businessId) {
+        
+        List<StockAdjustment> adjustments = adjustmentRepository
+                .findByBusinessIdOrderByAdjustedAtDesc(businessId);
+        
+        int totalInward = adjustments.stream()
+                .filter(a -> a.getType() == StockAdjustment.AdjustmentType.ADDED)
+                .mapToInt(StockAdjustment::getQuantity)
+                .sum();
+        
+        int totalOutward = adjustments.stream()
+                .filter(a -> a.getType() == StockAdjustment.AdjustmentType.REDUCED)
+                .mapToInt(StockAdjustment::getQuantity)
+                .sum();
+        
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("totalInward", totalInward);
+        summary.put("totalOutward", totalOutward);
+        summary.put("netIncrease", totalInward - totalOutward);
+        summary.put("totalEntries", adjustments.size());
+        
+        return ResponseEntity.ok(summary);
     }
 }

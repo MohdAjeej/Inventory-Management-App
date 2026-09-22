@@ -45,4 +45,9 @@ interface ApiService {
         @Path("productId") productId: Long,
         @Query("type") type: String? = null
     ): List<StockAdjustmentResponse>
+    
+    @GET("api/stock-adjustments/business/{businessId}")
+    suspend fun getBusinessStockHistory(
+        @Path("businessId") businessId: Long
+    ): List<StockAdjustmentResponse>
 }
