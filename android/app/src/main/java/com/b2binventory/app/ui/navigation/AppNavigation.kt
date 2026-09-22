@@ -65,6 +65,9 @@ sealed class Screen(val route: String) {
     object LowStockProducts : Screen("low_stock_products/{businessId}/{userId}") {
         fun createRoute(businessId: Long, userId: Long) = "low_stock_products/$businessId/$userId"
     }
+    object OutOfStockProducts : Screen("out_of_stock_products/{businessId}/{userId}") {
+        fun createRoute(businessId: Long, userId: Long) = "out_of_stock_products/$businessId/$userId"
+    }
     object Settings : Screen("settings/{businessId}/{userId}") {
         fun createRoute(businessId: Long, userId: Long) = "settings/$businessId/$userId"
     }
@@ -392,6 +395,28 @@ fun AppNavigation(
             val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
             
             LowStockProductsScreen(
+                businessId = businessId,
+                userId = userId,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToRestock = { productId ->
+                    navController.navigate(
+                        Screen.StockAdjustment.createRoute(productId, businessId, userId)
+                    )
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.OutOfStockProducts.route,
+            arguments = listOf(
+                navArgument("businessId") { type = NavType.LongType },
+                navArgument("userId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
+            val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
+            
+            OutOfStockProductsScreen(
                 businessId = businessId,
                 userId = userId,
                 onNavigateBack = { navController.popBackStack() },
