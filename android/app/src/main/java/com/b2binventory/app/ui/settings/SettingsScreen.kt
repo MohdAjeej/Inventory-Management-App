@@ -31,35 +31,55 @@ fun SettingsScreen(
     businessId: Long,
     userId: Long,
     onNavigateBack: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onNavigateToBusinessProfile: () -> Unit = {},
+    onNavigateToTeamMembers: () -> Unit = {},
+    onNavigateToCategories: () -> Unit = {},
+    onNavigateToHelpSupport: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
-    val scope = rememberCoroutineScope()
     
-    val userName = sessionManager.getUserName() ?: "User"
-    val userEmail = sessionManager.getUserEmail() ?: "user@example.com"
-    val userRole = sessionManager.getUserRole() ?: "Admin"
+    val userName = remember { sessionManager.getUserName() ?: "User" }
+    val userEmail = remember { sessionManager.getUserEmail() ?: "user@example.com" }
+    val userRole = remember { sessionManager.getUserRole() ?: "Admin" }
     
     var business by remember { mutableStateOf<Business?>(null) }
     var businessLoading by remember { mutableStateOf(true) }
     
     var showLogoutDialog by remember { mutableStateOf(false) }
-    var notificationsEnabled by remember { mutableStateOf(true) }
-    var darkModeEnabled by remember { mutableStateOf(false) }
-    var autoBackup by remember { mutableStateOf(true) }
+    var showAboutDialog by remember { mutableStateOf(false) }
+    
+    // Load preferences from SharedPreferences
+    val prefs = remember { 
+        try {
+            context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+        } catch (e: Exception) {
+            null
+        }
+    }
+    var notificationsEnabled by remember { mutableStateOf(prefs?.getBoolean("notifications", true) ?: true) }
+    var darkModeEnabled by remember { mutableStateOf(prefs?.getBoolean("dark_mode", false) ?: false) }
+    var autoBackup by remember { mutableStateOf(prefs?.getBoolean("auto_backup", true) ?: true) }
+    
+    // Save preferences when changed
+    fun savePreference(key: String, value: Boolean) {
+        try {
+            prefs?.edit()?.putBoolean(key, value)?.apply()
+        } catch (e: Exception) {
+            // Handle error silently
+        }
+    }
     
     // Fetch business data
     LaunchedEffect(businessId) {
-        scope.launch {
-            try {
-                businessLoading = true
-                business = ApiClient.apiService.getBusinessById(businessId)
-            } catch (e: Exception) {
-                // Handle error silently
-            } finally {
-                businessLoading = false
-            }
+        try {
+            businessLoading = true
+            business = ApiClient.apiService.getBusinessById(businessId)
+        } catch (e: Exception) {
+            // Handle error silently
+        } finally {
+            businessLoading = false
         }
     }
     
@@ -100,6 +120,43 @@ fun SettingsScreen(
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+    
+    // About Dialog
+    if (showAboutDialog) {
+        AlertDialog(
+            onDismissRequest = { showAboutDialog = false },
+            icon = {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(48.dp)
+                )
+            },
+            title = { 
+                Text(
+                    "B2B Inventory Management", 
+                    fontWeight = FontWeight.Bold
+                ) 
+            },
+            text = { 
+                Column {
+                    Text("Version: 1.0.0")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Build: 2026.09.25")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("A comprehensive inventory management solution for B2B businesses.")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("© 2026 B2B Inventory. All rights reserved.", fontSize = 12.sp)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAboutDialog = false }) {
+                    Text("OK")
                 }
             }
         )
@@ -265,7 +322,7 @@ fun SettingsScreen(
                         title = "Business Profile",
                         subtitle = if (businessLoading) "Loading..." 
                                   else business?.name ?: "My Business",
-                        onClick = { /* TODO: Navigate to business profile */ }
+                        onClick = onNavigateToBusinessProfile
                     )
                     
                     Divider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -305,7 +362,7 @@ fun SettingsScreen(
                         iconColor = Color(0xFFE91E63),
                         title = "Categories",
                         subtitle = "Manage product categories",
-                        onClick = { /* TODO: Navigate to categories */ }
+                        onClick = onNavigateToCategories
                     )
                     
                     Divider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -345,7 +402,7 @@ fun SettingsScreen(
                         iconColor = Color(0xFF3F51B5),
                         title = "Team Members",
                         subtitle = "Manage employees and roles",
-                        onClick = { /* TODO: Navigate to employees */ }
+                        onClick = onNavigateToTeamMembers
                     )
                     
                     Divider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -375,7 +432,10 @@ fun SettingsScreen(
                         title = "Notifications",
                         subtitle = "Enable push notifications",
                         checked = notificationsEnabled,
-                        onCheckedChange = { notificationsEnabled = it }
+                        onCheckedChange = { 
+                            notificationsEnabled = it
+                            savePreference("notifications", it)
+                        }
                     )
                     
                     Divider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -387,7 +447,10 @@ fun SettingsScreen(
                         title = "Dark Mode",
                         subtitle = "Use dark theme",
                         checked = darkModeEnabled,
-                        onCheckedChange = { darkModeEnabled = it }
+                        onCheckedChange = { 
+                            darkModeEnabled = it
+                            savePreference("dark_mode", it)
+                        }
                     )
                     
                     Divider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -399,7 +462,10 @@ fun SettingsScreen(
                         title = "Auto Backup",
                         subtitle = "Automatic data backup",
                         checked = autoBackup,
-                        onCheckedChange = { autoBackup = it }
+                        onCheckedChange = { 
+                            autoBackup = it
+                            savePreference("auto_backup", it)
+                        }
                     )
                 }
             }
@@ -446,7 +512,7 @@ fun SettingsScreen(
                         iconColor = Color(0xFF2196F3),
                         title = "Help & Support",
                         subtitle = "Get help with using the app",
-                        onClick = { /* TODO: Navigate to help */ }
+                        onClick = onNavigateToHelpSupport
                     )
                     
                     Divider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -457,7 +523,7 @@ fun SettingsScreen(
                         iconColor = Color(0xFFFF9800),
                         title = "About",
                         subtitle = "Version 1.0.0 • B2B Inventory",
-                        onClick = { /* TODO: Show about dialog */ }
+                        onClick = { showAboutDialog = true }
                     )
                     
                     Divider(modifier = Modifier.padding(horizontal = 16.dp))

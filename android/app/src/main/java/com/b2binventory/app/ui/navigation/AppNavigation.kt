@@ -71,6 +71,13 @@ sealed class Screen(val route: String) {
     object CategoriesManagement : Screen("categories_management/{businessId}/{userId}") {
         fun createRoute(businessId: Long, userId: Long) = "categories_management/$businessId/$userId"
     }
+    object BusinessProfile : Screen("business_profile/{businessId}") {
+        fun createRoute(businessId: Long) = "business_profile/$businessId"
+    }
+    object TeamMembers : Screen("team_members/{businessId}") {
+        fun createRoute(businessId: Long) = "team_members/$businessId"
+    }
+    object HelpSupport : Screen("help_support")
     object Settings : Screen("settings/{businessId}/{userId}") {
         fun createRoute(businessId: Long, userId: Long) = "settings/$businessId/$userId"
     }
@@ -480,6 +487,18 @@ fun AppNavigation(
                             navController.navigate(Screen.Login.route) {
                                 popUpTo(0) { inclusive = true }
                             }
+                        },
+                        onNavigateToBusinessProfile = {
+                            navController.navigate(Screen.BusinessProfile.createRoute(businessId))
+                        },
+                        onNavigateToTeamMembers = {
+                            navController.navigate(Screen.TeamMembers.createRoute(businessId))
+                        },
+                        onNavigateToCategories = {
+                            navController.navigate(Screen.CategoriesManagement.createRoute(businessId, userId))
+                        },
+                        onNavigateToHelpSupport = {
+                            navController.navigate(Screen.HelpSupport.route)
                         }
                     )
                 }
@@ -540,6 +559,43 @@ fun AppNavigation(
                     )
                 }
             }
+        }
+        
+        // Business Profile Screen
+        composable(
+            route = Screen.BusinessProfile.route,
+            arguments = listOf(
+                navArgument("businessId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
+            
+            com.b2binventory.app.ui.settings.BusinessProfileScreen(
+                businessId = businessId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        // Team Members Screen
+        composable(
+            route = Screen.TeamMembers.route,
+            arguments = listOf(
+                navArgument("businessId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val businessId = backStackEntry.arguments?.getLong("businessId") ?: 0L
+            
+            com.b2binventory.app.ui.settings.TeamMembersScreen(
+                businessId = businessId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        // Help & Support Screen
+        composable(route = Screen.HelpSupport.route) {
+            com.b2binventory.app.ui.settings.HelpSupportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

@@ -64,7 +64,7 @@ data class User(
 
 data class Business(
     val id: Long,
-    val name: String,
+    val name: String?,
     val type: String?,
     val mobile: String?,
     val email: String?,
