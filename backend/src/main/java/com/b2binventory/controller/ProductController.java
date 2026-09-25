@@ -18,6 +18,7 @@ public class ProductController {
     }
 
     @GetMapping
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<Product> getProducts(
         @RequestParam Long businessId,
         @RequestParam(required = false) String category,
@@ -27,11 +28,13 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public Product getProduct(@PathVariable Long id, @RequestParam Long businessId) {
         return productService.getProductById(id, businessId);
     }
 
     @PostMapping
+    @org.springframework.transaction.annotation.Transactional
     public Product createProduct(
         @RequestParam Long businessId,
         @RequestParam Long userId,
@@ -41,6 +44,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
+    @org.springframework.transaction.annotation.Transactional
     public Product updateProduct(
         @PathVariable Long id,
         @RequestParam Long businessId,
@@ -51,16 +55,19 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
+    @org.springframework.transaction.annotation.Transactional
     public void deleteProduct(@PathVariable Long id, @RequestParam Long businessId) {
         productService.deleteProduct(id, businessId);
     }
 
     @GetMapping("/low-stock")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<Product> getLowStockProducts(@RequestParam Long businessId) {
         return productService.getLowStockProducts(businessId);
     }
 
     @GetMapping("/out-of-stock")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<Product> getOutOfStockProducts(@RequestParam Long businessId) {
         return productService.getOutOfStockProducts(businessId);
     }

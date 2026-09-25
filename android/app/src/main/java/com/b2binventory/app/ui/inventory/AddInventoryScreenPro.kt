@@ -447,25 +447,17 @@ fun AddInventoryScreenPro(
                                     minimumStock = minimumStock.toIntOrNull() ?: 0
                                 )
                                 
-                                println("DEBUG: Creating product for businessId=$businessId, userId=$userId")
-                                println("DEBUG: Product data: $product")
-                                
                                 val result = ApiClient.apiService.createProduct(
                                     businessId = businessId,
                                     userId = userId,
                                     product = product
                                 )
                                 
-                                println("DEBUG: Product created successfully with ID: ${result.id}")
-                                
                                 // Show success dialog
                                 showSuccessDialog = true
                                 
                             } catch (e: Exception) {
-                                e.printStackTrace()
                                 message = "❌ Error: ${e.message ?: "Unable to save. Please check your internet connection and try again."}"
-                                println("DEBUG: Error creating product: ${e.message}")
-                                println("DEBUG: Full error: $e")
                             } finally {
                                 loading = false
                             }

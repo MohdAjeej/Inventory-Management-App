@@ -19,23 +19,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.b2binventory.app.data.ApiClient
-import com.b2binventory.app.data.Product
+import com.b2binventory.app.data.StockAdjustmentResponse
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
-
-data class Receipt(
-    val id: Long,
-    val productId: Long,
-    val productName: String,
-    val category: String,
-    val quantity: Int,
-    val price: Double,
-    val totalAmount: Double,
-    val transactionType: String, // "IN" or "OUT"
-    val date: Date,
-    val sku: String?
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,9 +33,8 @@ fun ReceiptsScreen(
     businessId: Long,
     userId: Long
 ) {
-    var products by remember { mutableStateOf<List<Product>>(emptyList()) }
-    var receipts by remember { mutableStateOf<List<Receipt>>(emptyList()) }
-    var filteredReceipts by remember { mutableStateOf<List<Receipt>>(emptyList()) }
+    var stockAdjustments by remember { mutableStateOf<List<StockAdjustmentResponse>>(emptyList()) }
+    var filteredAdjustments by remember { mutableStateOf<List<StockAdjustmentResponse>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf("") }
     var searchQuery by remember { mutableStateOf("") }
@@ -53,79 +42,25 @@ fun ReceiptsScreen(
     
     val scope = rememberCoroutineScope()
     
-    fun generateReceipts(products: List<Product>) {
-        val receiptsList = mutableListOf<Receipt>()
-        var receiptId = 1L
-        
-        // Generate receipts from products (simulating transaction history)
-        products.forEach { product ->
-            // Use a default price based on product name hash for consistency
-            val defaultPrice = ((product.name.hashCode() % 500) + 50).toDouble()
-            
-            // Simulate some "IN" transactions (stock additions)
-            val inTransactions = (1..3).random()
-            repeat(inTransactions) {
-                val qty = (10..50).random()
-                receiptsList.add(
-                    Receipt(
-                        id = receiptId++,
-                        productId = product.id ?: 0L,
-                        productName = product.name,
-                        category = product.category,
-                        quantity = qty,
-                        price = defaultPrice,
-                        totalAmount = defaultPrice * qty,
-                        transactionType = "IN",
-                        date = Date(System.currentTimeMillis() - (0..30L).random() * 24 * 60 * 60 * 1000),
-                        sku = product.sku
-                    )
-                )
-            }
-            
-            // Simulate some "OUT" transactions (sales/usage)
-            val outTransactions = (1..2).random()
-            repeat(outTransactions) {
-                val qty = (1..20).random()
-                receiptsList.add(
-                    Receipt(
-                        id = receiptId++,
-                        productId = product.id ?: 0L,
-                        productName = product.name,
-                        category = product.category,
-                        quantity = qty,
-                        price = defaultPrice,
-                        totalAmount = defaultPrice * qty,
-                        transactionType = "OUT",
-                        date = Date(System.currentTimeMillis() - (0..30L).random() * 24 * 60 * 60 * 1000),
-                        sku = product.sku
-                    )
-                )
-            }
-        }
-        
-        receipts = receiptsList.sortedByDescending { it.date }
-    }
-    
     fun applyFilters() {
-        var filtered = receipts
+        var filtered = stockAdjustments
         
         // Apply search filter
         if (searchQuery.isNotEmpty()) {
             filtered = filtered.filter {
                 it.productName.contains(searchQuery, ignoreCase = true) ||
-                it.category.contains(searchQuery, ignoreCase = true) ||
-                it.sku?.contains(searchQuery, ignoreCase = true) == true
+                it.reason.contains(searchQuery, ignoreCase = true)
             }
         }
         
         // Apply type filter
         filtered = when (selectedFilter) {
-            "Stock In" -> filtered.filter { it.transactionType == "IN" }
-            "Stock Out" -> filtered.filter { it.transactionType == "OUT" }
+            "Stock In" -> filtered.filter { it.type == "ADDED" }
+            "Stock Out" -> filtered.filter { it.type == "REDUCED" }
             else -> filtered
         }
         
-        filteredReceipts = filtered
+        filteredAdjustments = filtered
     }
     
     fun fetchData() {
@@ -133,8 +68,7 @@ fun ReceiptsScreen(
         errorMessage = ""
         scope.launch {
             try {
-                products = ApiClient.apiService.products(businessId = businessId)
-                generateReceipts(products)
+                stockAdjustments = ApiClient.apiService.getBusinessStockHistory(businessId)
                 applyFilters()
             } catch (e: Exception) {
                 errorMessage = "Failed to load receipts: ${e.message}"
@@ -153,10 +87,10 @@ fun ReceiptsScreen(
     }
     
     // Calculate stats
-    val totalReceipts = filteredReceipts.size
-    val totalStockIn = filteredReceipts.filter { it.transactionType == "IN" }.sumOf { it.quantity }
-    val totalStockOut = filteredReceipts.filter { it.transactionType == "OUT" }.sumOf { it.quantity }
-    val totalValue = filteredReceipts.sumOf { it.totalAmount }
+    val totalReceipts = filteredAdjustments.size
+    val totalStockIn = filteredAdjustments.filter { it.type == "ADDED" }.sumOf { it.quantity }
+    val totalStockOut = filteredAdjustments.filter { it.type == "REDUCED" }.sumOf { it.quantity }
+    val netStock = totalStockIn - totalStockOut
     
     Scaffold(
         topBar = {
@@ -208,7 +142,7 @@ fun ReceiptsScreen(
             }
         }
     ) { padding ->
-        if (loading && receipts.isEmpty()) {
+        if (loading && stockAdjustments.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -334,7 +268,7 @@ fun ReceiptsScreen(
                             color = Color(0xFF1A1A1A)
                         )
                         Text(
-                            "${filteredReceipts.size} items",
+                            "${filteredAdjustments.size} items",
                             fontSize = 13.sp,
                             color = Color(0xFF666666)
                         )
@@ -342,7 +276,7 @@ fun ReceiptsScreen(
                 }
                 
                 // Receipts List
-                if (filteredReceipts.isEmpty()) {
+                if (filteredAdjustments.isEmpty()) {
                     item {
                         Box(
                             modifier = Modifier
@@ -363,8 +297,8 @@ fun ReceiptsScreen(
                         }
                     }
                 } else {
-                    items(filteredReceipts) { receipt ->
-                        ReceiptItem(receipt = receipt)
+                    items(filteredAdjustments) { adjustment ->
+                        StockAdjustmentItem(adjustment = adjustment)
                     }
                 }
                 
@@ -405,13 +339,21 @@ fun StatsCard(
 }
 
 @Composable
-fun ReceiptItem(receipt: Receipt) {
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+fun StockAdjustmentItem(adjustment: StockAdjustmentResponse) {
+    // Parse the ISO-8601 timestamp
+    val instant = try {
+        Instant.parse(adjustment.adjustedAt)
+    } catch (e: Exception) {
+        Instant.now()
+    }
+    val dateTime = instant.atZone(ZoneId.systemDefault())
+    val dateFormat = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+    val timeFormat = DateTimeFormatter.ofPattern("hh:mm a")
     
-    val bgColor = if (receipt.transactionType == "IN") Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-    val iconColor = if (receipt.transactionType == "IN") Color(0xFF4CAF50) else Color(0xFFF44336)
-    val icon = if (receipt.transactionType == "IN") Icons.Default.TrendingUp else Icons.Default.TrendingDown
+    val isStockIn = adjustment.type == "ADDED"
+    val bgColor = if (isStockIn) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+    val iconColor = if (isStockIn) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val icon = if (isStockIn) Icons.Default.TrendingUp else Icons.Default.TrendingDown
     
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -442,28 +384,42 @@ fun ReceiptItem(receipt: Receipt) {
             
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    receipt.productName,
+                    adjustment.productName,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1A1A1A)
                 )
                 Text(
-                    receipt.category,
+                    adjustment.reason,
                     fontSize = 12.sp,
                     color = Color(0xFF666666)
                 )
+                if (adjustment.notes != null && adjustment.notes.isNotEmpty()) {
+                    Text(
+                        adjustment.notes,
+                        fontSize = 11.sp,
+                        color = Color(0xFF999999),
+                        maxLines = 1
+                    )
+                }
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        dateFormat.format(receipt.date),
+                        dateFormat.format(dateTime),
                         fontSize = 11.sp,
                         color = Color(0xFF999999)
                     )
                     Text("•", fontSize = 11.sp, color = Color(0xFF999999))
                     Text(
-                        timeFormat.format(receipt.date),
+                        timeFormat.format(dateTime),
+                        fontSize = 11.sp,
+                        color = Color(0xFF999999)
+                    )
+                    Text("•", fontSize = 11.sp, color = Color(0xFF999999))
+                    Text(
+                        "By: ${adjustment.addedBy}",
                         fontSize = 11.sp,
                         color = Color(0xFF999999)
                     )
@@ -472,14 +428,14 @@ fun ReceiptItem(receipt: Receipt) {
             
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    if (receipt.transactionType == "IN") "+${receipt.quantity}" else "-${receipt.quantity}",
+                    if (isStockIn) "+${adjustment.quantity}" else "-${adjustment.quantity}",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = iconColor
                 )
                 Text(
-                    "$${String.format("%.2f", receipt.totalAmount)}",
-                    fontSize = 13.sp,
+                    "${adjustment.stockBefore} → ${adjustment.stockAfter}",
+                    fontSize = 12.sp,
                     color = Color(0xFF666666)
                 )
             }

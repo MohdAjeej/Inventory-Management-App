@@ -2,10 +2,12 @@ package com.b2binventory.service;
 
 import com.b2binventory.domain.AppUser;
 import com.b2binventory.domain.Business;
+import com.b2binventory.domain.Category;
 import com.b2binventory.domain.Product;
 import com.b2binventory.domain.StockMovementType;
 import com.b2binventory.dto.ProductRequest;
 import com.b2binventory.repository.BusinessRepository;
+import com.b2binventory.repository.CategoryRepository;
 import com.b2binventory.repository.ProductRepository;
 import com.b2binventory.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -19,15 +21,18 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final BusinessRepository businessRepository;
     private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
     private final StockService stockService;
 
     public ProductService(ProductRepository productRepository,
                           BusinessRepository businessRepository,
                           UserRepository userRepository,
+                          CategoryRepository categoryRepository,
                           StockService stockService) {
         this.productRepository = productRepository;
         this.businessRepository = businessRepository;
         this.userRepository = userRepository;
+        this.categoryRepository = categoryRepository;
         this.stockService = stockService;
     }
 
@@ -36,7 +41,7 @@ public class ProductService {
             return productRepository.findByBusinessIdAndNameContainingIgnoreCaseOrderByName(businessId, search);
         }
         if (category != null && !category.isBlank()) {
-            return productRepository.findByBusinessIdAndCategoryIgnoreCaseOrderByUpdatedAtDesc(businessId, category);
+            return productRepository.findByBusinessIdAndCategoryNameIgnoreCaseOrderByUpdatedAtDesc(businessId, category);
         }
         return productRepository.findByBusinessIdOrderByUpdatedAtDesc(businessId);
     }
@@ -74,7 +79,7 @@ public class ProductService {
 
         Product product = new Product();
         product.setBusiness(business);
-        product.setCategory(request.category());
+        applyCategory(product, businessId, request.category());
         product.setName(request.name());
         product.setBrand(request.brand());
         product.setSku(request.sku());
@@ -120,7 +125,7 @@ public class ProductService {
             product.setName(request.name());
         }
         if (request.category() != null) {
-            product.setCategory(request.category());
+            applyCategory(product, businessId, request.category());
         }
         if (request.brand() != null) {
             product.setBrand(request.brand());
@@ -174,5 +179,25 @@ public class ProductService {
         product.setActive(false);
         product.touch();
         productRepository.save(product);
+    }
+
+    private void applyCategory(Product product, Long businessId, String categoryName) {
+        if (categoryName == null || categoryName.isBlank()) {
+            product.setCategory(null);
+            product.setCategoryName(null);
+            return;
+        }
+
+        String normalizedCategoryName = categoryName.trim();
+        Category category = categoryRepository
+            .findByBusinessIdAndNameIgnoreCase(businessId, normalizedCategoryName)
+            .orElse(null);
+
+        if (category != null) {
+            product.setCategory(category);
+        } else {
+            product.setCategory(null);
+            product.setCategoryName(normalizedCategoryName);
+        }
     }
 }

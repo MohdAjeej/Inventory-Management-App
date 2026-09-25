@@ -29,7 +29,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.b2binventory.app.data.ApiClient
+import com.b2binventory.app.data.SessionManager
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,6 +40,9 @@ fun LoginScreenPro(
     onLoginSuccess: (Long, Long) -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(false) }
@@ -318,9 +323,6 @@ fun LoginScreenPro(
                                         com.b2binventory.app.data.LoginRequest(email, password)
                                     )
                                     
-                                    // Debug logging
-                                    android.util.Log.d("LoginScreen", "Login response: $response")
-                                    
                                     val businessId = when (val bid = response["businessId"]) {
                                         is Number -> bid.toLong()
                                         is String -> bid.toLongOrNull() ?: 0L
@@ -333,15 +335,24 @@ fun LoginScreenPro(
                                         else -> 0L
                                     }
                                     
-                                    android.util.Log.d("LoginScreen", "Parsed - businessId: $businessId, userId: $userId")
+                                    val userName = response["name"]?.toString() ?: "User"
+                                    val userEmail = response["email"]?.toString() ?: email
+                                    val userRole = response["role"]?.toString() ?: "User"
                                     
                                     if (businessId > 0 && userId > 0) {
+                                        // Save session
+                                        sessionManager.saveSession(
+                                            userId = userId,
+                                            businessId = businessId,
+                                            name = userName,
+                                            email = userEmail,
+                                            role = userRole
+                                        )
                                         onLoginSuccess(businessId, userId)
                                     } else {
-                                        errorMessage = "Invalid response from server. businessId=$businessId, userId=$userId"
+                                        errorMessage = "Invalid response from server"
                                     }
                                 } catch (e: Exception) {
-                                    android.util.Log.e("LoginScreen", "Login error", e)
                                     errorMessage = e.message ?: "Login failed. Please check your credentials."
                                 } finally {
                                     loading = false

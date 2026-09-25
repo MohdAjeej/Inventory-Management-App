@@ -39,6 +39,7 @@ public class CategoryController {
     
     // Get all categories for a business with pagination
     @GetMapping("/business/{businessId}")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> getCategoriesByBusiness(
             @PathVariable Long businessId,
             @RequestParam(defaultValue = "0") int page,
@@ -100,6 +101,7 @@ public class CategoryController {
     
     // Get category by ID
     @GetMapping("/{id}")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public ResponseEntity<CategoryResponse> getCategoryById(@PathVariable Long id) {
         return categoryRepository.findById(id)
                 .map(category -> ResponseEntity.ok(CategoryResponse.fromEntity(category)))
@@ -108,6 +110,7 @@ public class CategoryController {
     
     // Create new category
     @PostMapping
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CategoryRequest request) {
         try {
             // Check if business exists
@@ -136,6 +139,7 @@ public class CategoryController {
     
     // Update category
     @PutMapping("/{id}")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<CategoryResponse> updateCategory(
             @PathVariable Long id,
             @Valid @RequestBody CategoryRequest request) {
@@ -164,6 +168,7 @@ public class CategoryController {
     
     // Toggle category status (activate/deactivate)
     @PatchMapping("/{id}/toggle-status")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<CategoryResponse> toggleCategoryStatus(@PathVariable Long id) {
         try {
             Category category = categoryRepository.findById(id)
@@ -181,6 +186,7 @@ public class CategoryController {
     
     // Delete category
     @DeleteMapping("/{id}")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<Map<String, String>> deleteCategory(@PathVariable Long id) {
         try {
             Category category = categoryRepository.findById(id)

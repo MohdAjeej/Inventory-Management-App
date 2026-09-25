@@ -97,6 +97,7 @@ public class StockAdjustmentController {
     }
 
     @GetMapping("/product/{productId}")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<StockAdjustmentResponse>> getProductHistory(
             @PathVariable Long productId,
             @RequestParam(required = false) String type) {
@@ -119,6 +120,7 @@ public class StockAdjustmentController {
     }
 
     @GetMapping("/business/{businessId}")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<StockAdjustmentResponse>> getBusinessHistory(
             @PathVariable Long businessId) {
         
@@ -133,6 +135,7 @@ public class StockAdjustmentController {
     }
     
     @GetMapping("/business/{businessId}/summary")
+    @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> getBusinessSummary(
             @PathVariable Long businessId) {
         

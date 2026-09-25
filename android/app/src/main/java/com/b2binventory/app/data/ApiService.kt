@@ -91,4 +91,10 @@ interface ApiService {
     suspend fun deleteCategory(
         @Path("id") id: Long
     ): Map<String, String>
+    
+    // Business endpoints
+    @GET("api/businesses/{id}")
+    suspend fun getBusinessById(
+        @Path("id") id: Long
+    ): Business
 }

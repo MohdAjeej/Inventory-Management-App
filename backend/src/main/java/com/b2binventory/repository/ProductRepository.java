@@ -13,7 +13,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     
     List<Product> findByBusinessIdOrderByUpdatedAtDesc(Long businessId);
     
-    List<Product> findByBusinessIdAndCategoryIgnoreCaseOrderByUpdatedAtDesc(Long businessId, String category);
+    List<Product> findByBusinessIdAndCategoryNameIgnoreCaseOrderByUpdatedAtDesc(Long businessId, String categoryName);
     
     List<Product> findByBusinessIdAndNameContainingIgnoreCaseOrderByName(Long businessId, String name);
     
@@ -22,6 +22,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByBusinessIdAndSku(Long businessId, String sku);
     
     Optional<Product> findByBusinessIdAndBarcode(Long businessId, String barcode);
+
+    long countByBusinessId(Long businessId);
     
     @Query("SELECT p FROM Product p WHERE p.business.id = ?1 AND p.quantity <= p.minimumStock AND p.active = true ORDER BY p.quantity ASC")
     List<Product> findLowStockProducts(Long businessId);

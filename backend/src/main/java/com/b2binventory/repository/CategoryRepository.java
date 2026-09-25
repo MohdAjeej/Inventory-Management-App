@@ -22,6 +22,8 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     
     // Find category by ID and business ID
     Optional<Category> findByIdAndBusinessId(Long id, Long businessId);
+
+    Optional<Category> findByBusinessIdAndNameIgnoreCase(Long businessId, String name);
     
     // Search categories by name or description
     @Query("SELECT c FROM Category c WHERE c.business.id = :businessId AND " +

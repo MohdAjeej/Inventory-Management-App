@@ -1,6 +1,8 @@
 package com.b2binventory.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -12,6 +14,28 @@ import java.time.Instant;
                 @Index(
                         name = "idx_product_business",
                         columnList = "business_id"
+                ),
+                @Index(
+                        name = "idx_product_name",
+                        columnList = "name"
+                ),
+                @Index(
+                        name = "idx_product_sku",
+                        columnList = "sku"
+                ),
+                @Index(
+                        name = "idx_product_brand",
+                        columnList = "brand"
+                )
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_product_sku_business",
+                        columnNames = {"sku", "business_id"}
+                ),
+                @UniqueConstraint(
+                        name = "uk_product_barcode_business",
+                        columnNames = {"barcode", "business_id"}
                 )
         }
 )
@@ -77,12 +101,22 @@ public class Product {
         this.business = business;
     }
 
-    public Category getCategory() {
+    @JsonIgnore
+    public Category getCategoryEntity() {
         return category;
     }
 
     public void setCategory(Category category) {
         this.category = category;
+        this.categoryName = category != null ? category.getName() : null;
+    }
+
+    @JsonProperty("category")
+    public String getCategory() {
+        if (categoryName != null && !categoryName.isBlank()) {
+            return categoryName;
+        }
+        return category != null ? category.getName() : null;
     }
     
     public String getCategoryName() {
@@ -91,6 +125,9 @@ public class Product {
 
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
+        if (categoryName == null || categoryName.isBlank()) {
+            this.category = null;
+        }
     }
 
     public String getName() {
