@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">B2B Inventory</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="inventory">Inventory</string>
+    <string name="add_inventory">Add Inventory</string>
+    <string name="product_details">Product Details</string>
+    <string name="stock_adjustment">Stock Adjustment</string>
+    <string name="stock_history">Stock History</string>
+    <string name="settings">Settings</string>
+    <string name="employees">Employees</string>
+    <string name="categories">Categories</string>
+    <string name="reports">Reports</string>
+</resources>
