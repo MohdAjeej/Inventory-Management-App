@@ -1,0 +1,86 @@
+[
+ {
+  "id": 26,
+  "code": "box",
+  "name": "Boxes",
+  "decimals": 0,
+  "archived": false
+ },
+ {
+  "id": 34,
+  "code": "cm",
+  "name": "Centimetres",
+  "decimals": 1,
+  "archived": false
+ },
+ {
+  "id": 35,
+  "code": "ft",
+  "name": "Feet",
+  "decimals": 2,
+  "archived": false
+ },
+ {
+  "id": 30,
+  "code": "g",
+  "name": "Grams",
+  "decimals": 0,
+  "archived": false
+ },
+ {
+  "id": 29,
+  "code": "kg",
+  "name": "Kilograms",
+  "decimals": 3,
+  "archived": false
+ },
+ {
+  "id": 31,
+  "code": "l",
+  "name": "Litres",
+  "decimals": 3,
+  "archived": false
+ },
+ {
+  "id": 33,
+  "code": "m",
+  "name": "Metres",
+  "decimals": 2,
+  "archived": false
+ },
+ {
+  "id": 32,
+  "code": "ml",
+  "name": "Millilitres",
+  "decimals": 0,
+  "archived": false
+ },
+ {
+  "id": 27,
+  "code": "pack",
+  "name": "Packs",
+  "decimals": 0,
+  "archived": false
+ },
+ {
+  "id": 25,
+  "code": "pcs",
+  "name": "Pieces",
+  "decimals": 0,
+  "archived": false
+ },
+ {
+  "id": 28,
+  "code": "set",
+  "name": "Sets",
+  "decimals": 0,
+  "archived": false
+ },
+ {
+  "id": 36,
+  "code": "sqm",
+  "name": "Square metres",
+  "decimals": 2,
+  "archived": false
+ }
+]

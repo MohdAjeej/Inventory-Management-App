@@ -1,0 +1,93 @@
+{
+ "id": 4,
+ "name": "Paracetamol 500",
+ "categoryId": 4,
+ "categoryName": "Tablets",
+ "categoryPath": "Medicines / Tablets",
+ "baseUnit": {
+  "id": 25,
+  "code": "pcs",
+  "name": "Pieces",
+  "decimals": 0,
+  "archived": false
+ },
+ "minStock": 10,
+ "effectiveMinStock": 10,
+ "attributes": {
+  "otc": true,
+  "form": "Tablet",
+  "strength": "500 mg"
+ },
+ "trackBatches": true,
+ "trackSerials": false,
+ "archived": false,
+ "stock": {
+  "onHand": 44.0,
+  "reserved": 0.0,
+  "damaged": 0.0,
+  "available": 44.0
+ },
+ "status": "IN_STOCK",
+ "variants": [
+  {
+   "id": 4,
+   "name": "Paracetamol 500",
+   "sku": "PCM-500",
+   "attributes": {},
+   "effectiveMinStock": 10,
+   "isDefault": true,
+   "archived": false,
+   "stock": {
+    "onHand": 44.0,
+    "reserved": 0.0,
+    "damaged": 0.0,
+    "available": 44.0
+   },
+   "status": "IN_STOCK"
+  }
+ ],
+ "images": [],
+ "balances": [
+  {
+   "warehouseId": 5,
+   "warehouseName": "City Branch",
+   "variantId": 4,
+   "variantName": "Paracetamol 500",
+   "batchId": 3,
+   "lotNumber": "L1",
+   "expiryDate": "2027-03-31",
+   "onHand": 10.0,
+   "reserved": 0.0,
+   "damaged": 0.0,
+   "available": 10.0
+  },
+  {
+   "warehouseId": 4,
+   "warehouseName": "Main Warehouse",
+   "variantId": 4,
+   "variantName": "Paracetamol 500",
+   "batchId": 3,
+   "lotNumber": "L1",
+   "expiryDate": "2027-03-31",
+   "onHand": 14.0,
+   "reserved": 0.0,
+   "damaged": 0.0,
+   "available": 14.0
+  },
+  {
+   "warehouseId": 4,
+   "warehouseName": "Main Warehouse",
+   "variantId": 4,
+   "variantName": "Paracetamol 500",
+   "batchId": 4,
+   "lotNumber": "L2",
+   "expiryDate": "2027-09-30",
+   "onHand": 20.0,
+   "reserved": 0.0,
+   "damaged": 0.0,
+   "available": 20.0
+  }
+ ],
+ "createdAt": "2026-10-14T11:29:15.418158Z",
+ "updatedAt": "2026-10-14T11:29:15.418158Z"
+}

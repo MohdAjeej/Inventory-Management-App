@@ -1,0 +1,22 @@
+[
+ {
+  "id": 3,
+  "name": "Medicines",
+  "path": "Medicines",
+  "archived": false,
+  "productCount": 0,
+  "depth": 0,
+  "children": [
+   {
+    "id": 4,
+    "name": "Tablets",
+    "parentId": 3,
+    "path": "Medicines / Tablets",
+    "archived": false,
+    "productCount": 0,
+    "depth": 1,
+    "children": []
+   }
+  ]
+ }
+]

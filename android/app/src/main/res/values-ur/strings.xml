@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_retry">دوبارہ کوشش کریں</string>
+    <string name="appearance_title">ظاہری شکل اور زبان</string>
+    <string name="appearance_theme">تھیم</string>
+    <string name="appearance_theme_system">فون کی ترتیب کے مطابق</string>
+    <string name="appearance_theme_light">ہلکی</string>
+    <string name="appearance_theme_dark">گہری</string>
+    <string name="appearance_language">زبان</string>
+    <string name="appearance_language_system">فون کی زبان</string>
+    <string name="appearance_language_note">سرور کی طرف سے بھیجے گئے پیغامات، جیسے کچھ خرابی کے پیغامات، انگریزی میں نظر آ سکتے ہیں۔</string>
+    <string name="backup_title">بیک اپ اور بحالی</string>
+    <string name="backup_needs_connection">بیک اپ اور بحالی کے لیے سرور سے کنکشن ضروری ہے۔</string>
+    <string name="backup_create_title">بیک اپ بنائیں</string>
+    <string name="backup_create_body">اس کاروبار کا تمام ڈیٹا — مصنوعات، اسٹاک، فروخت، خریداری، گاہک اور سپلائرز — ڈاؤن لوڈز میں ایک فائل میں محفوظ کرتا ہے۔ اسے Google Drive جیسی محفوظ جگہ پر رکھیں۔</string>
+    <string name="backup_create_action">بیک اپ بنائیں</string>
+    <string name="backup_saved">%1$s ڈاؤن لوڈز میں محفوظ ہو گیا</string>
+    <string name="backup_restore_title">بیک اپ سے بحال کریں</string>
+    <string name="backup_restore_body">بیک اپ فائل سے ایک نیا کاروبار بناتا ہے۔ آپ کا موجودہ کاروبار نہیں بدلتا۔ ٹیم ممبرز بحال نہیں ہوتے؛ آپ اس کے منتظم ہوں گے۔</string>
+    <string name="backup_restore_action">بیک اپ فائل منتخب کریں</string>
+    <string name="backup_not_a_backup">یہ فائل انوینٹری بیک اپ نہیں ہے۔</string>
+    <string name="backup_unknown_business">بیک اپ</string>
+    <string name="backup_restore_confirm_title">بیک اپ بحال کریں؟</string>
+    <string name="backup_restore_confirm_body">“%1$s” سے ایک نیا کاروبار بنے گا اور آپ اس پر منتقل ہو جائیں گے۔ آپ کا موجودہ کاروبار نہیں بدلے گا۔</string>
+    <string name="backup_restore_confirm_action">بحال کریں</string>
+    <string name="offline_saved">آف لائن محفوظ ہو گیا۔ آن لائن ہونے پر بھیج دیا جائے گا۔</string>
+    <string name="offline_banner">آف لائن — محفوظ ڈیٹا دکھایا جا رہا ہے</string>
+    <string name="pending_view">دیکھیں</string>
+    <string name="pending_title">مطابقت پذیری باقی</string>
+    <string name="pending_sync_now">ابھی مطابقت پذیر کریں</string>
+    <string name="pending_empty_title">سب کچھ مطابقت پذیر ہو گیا</string>
+    <string name="pending_empty_body">آف لائن کی گئی فروخت، خریداری اور اسٹاک تبدیلیاں سرور تک پہنچنے تک یہاں نظر آتی ہیں۔</string>
+    <string name="pending_explainer">یہ تبدیلیاں اس فون پر محفوظ ہیں اور سرور دستیاب ہونے پر خود بخود بھیج دی جاتی ہیں۔ اگر سرور کسی کو مسترد کرے (مثلاً اب کافی اسٹاک نہیں)، تو وہ یہیں رہتی ہے تاکہ آپ دوبارہ کوشش کریں یا اسے ترک کریں۔</string>
+    <string name="pending_refused">قبول نہیں ہوا: %1$s</string>
+    <string name="pending_discard">ترک کریں</string>
+    <string name="pending_discard_title">یہ تبدیلی ترک کریں؟</string>
+    <string name="pending_discard_body">%1$s · %2$s اس فون سے حذف ہو جائے گی اور کبھی نہیں بھیجی جائے گی۔</string>
+    <string name="pending_type_sale">فروخت</string>
+    <string name="pending_type_purchase">خریداری</string>
+    <string name="pending_type_payment">ادائیگی</string>
+    <string name="pending_type_stock">اسٹاک تبدیلی</string>
+    <string name="pending_type_transfer">اسٹاک منتقلی</string>
+    <plurals name="pending_count">
+        <item quantity="one">%d تبدیلی مطابقت پذیری کی منتظر</item>
+        <item quantity="other">%d تبدیلیاں مطابقت پذیری کی منتظر</item>
+    </plurals>
+    <plurals name="pending_failed_count">
+        <item quantity="one">%d پر توجہ درکار</item>
+        <item quantity="other">%d پر توجہ درکار</item>
+    </plurals>
+    <plurals name="logout_pending_warning">
+        <item quantity="one">آف لائن کی گئی %d تبدیلی ابھی نہیں بھیجی گئی اور سائن آؤٹ کرنے پر ضائع ہو جائے گی۔</item>
+        <item quantity="other">آف لائن کی گئی %d تبدیلیاں ابھی نہیں بھیجی گئیں اور سائن آؤٹ کرنے پر ضائع ہو جائیں گی۔</item>
+    </plurals>
+</resources>

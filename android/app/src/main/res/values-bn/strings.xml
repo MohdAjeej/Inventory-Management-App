@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_retry">আবার চেষ্টা করুন</string>
+    <string name="appearance_title">চেহারা ও ভাষা</string>
+    <string name="appearance_theme">থিম</string>
+    <string name="appearance_theme_system">ফোনের সেটিং অনুযায়ী</string>
+    <string name="appearance_theme_light">হালকা</string>
+    <string name="appearance_theme_dark">গাঢ়</string>
+    <string name="appearance_language">ভাষা</string>
+    <string name="appearance_language_system">ফোনের ভাষা</string>
+    <string name="appearance_language_note">সার্ভার থেকে পাঠানো বার্তা, যেমন কিছু ত্রুটি বার্তা, ইংরেজিতে দেখা যেতে পারে।</string>
+    <string name="backup_title">ব্যাকআপ ও পুনরুদ্ধার</string>
+    <string name="backup_needs_connection">ব্যাকআপ ও পুনরুদ্ধারের জন্য সার্ভারের সাথে সংযোগ প্রয়োজন।</string>
+    <string name="backup_create_title">ব্যাকআপ তৈরি করুন</string>
+    <string name="backup_create_body">এই ব্যবসার সব তথ্য — পণ্য, স্টক, বিক্রি, ক্রয়, গ্রাহক ও সরবরাহকারী — ডাউনলোডে একটি ফাইলে সংরক্ষণ করে। এটি Google Drive-এর মতো নিরাপদ জায়গায় রাখুন।</string>
+    <string name="backup_create_action">ব্যাকআপ তৈরি করুন</string>
+    <string name="backup_saved">%1$s ডাউনলোডে সংরক্ষিত হয়েছে</string>
+    <string name="backup_restore_title">ব্যাকআপ থেকে পুনরুদ্ধার</string>
+    <string name="backup_restore_body">ব্যাকআপ ফাইল থেকে একটি নতুন ব্যবসা তৈরি করে। আপনার বর্তমান ব্যবসা বদলায় না। দলের সদস্যরা পুনরুদ্ধার হন না; আপনি এর প্রশাসক হবেন।</string>
+    <string name="backup_restore_action">ব্যাকআপ ফাইল বেছে নিন</string>
+    <string name="backup_not_a_backup">এই ফাইলটি ইনভেন্টরি ব্যাকআপ নয়।</string>
+    <string name="backup_unknown_business">ব্যাকআপ</string>
+    <string name="backup_restore_confirm_title">ব্যাকআপ পুনরুদ্ধার করবেন?</string>
+    <string name="backup_restore_confirm_body">“%1$s” থেকে একটি নতুন ব্যবসা তৈরি হবে এবং আপনি সেখানে চলে যাবেন। আপনার বর্তমান ব্যবসা বদলাবে না।</string>
+    <string name="backup_restore_confirm_action">পুনরুদ্ধার</string>
+    <string name="offline_saved">অফলাইনে সংরক্ষিত। অনলাইনে ফিরলে পাঠানো হবে।</string>
+    <string name="offline_banner">অফলাইন — সংরক্ষিত তথ্য দেখানো হচ্ছে</string>
+    <string name="pending_view">দেখুন</string>
+    <string name="pending_title">সিঙ্ক বাকি</string>
+    <string name="pending_sync_now">এখন সিঙ্ক করুন</string>
+    <string name="pending_empty_title">সব সিঙ্ক হয়ে গেছে</string>
+    <string name="pending_empty_body">অফলাইনে করা বিক্রি, ক্রয় ও স্টক পরিবর্তন সার্ভারে পৌঁছানো পর্যন্ত এখানে দেখা যায়।</string>
+    <string name="pending_explainer">এই পরিবর্তনগুলো এই ফোনে সংরক্ষিত এবং সার্ভারে পৌঁছানো গেলে নিজে থেকে পাঠানো হয়। সার্ভার কোনোটি প্রত্যাখ্যান করলে (যেমন আর পর্যাপ্ত স্টক নেই), সেটি এখানে থাকে যাতে আপনি আবার চেষ্টা বা বাতিল করতে পারেন।</string>
+    <string name="pending_refused">গ্রহণ করা হয়নি: %1$s</string>
+    <string name="pending_discard">বাতিল</string>
+    <string name="pending_discard_title">এই পরিবর্তন বাতিল করবেন?</string>
+    <string name="pending_discard_body">%1$s · %2$s এই ফোন থেকে মুছে যাবে এবং কখনো পাঠানো হবে না।</string>
+    <string name="pending_type_sale">বিক্রি</string>
+    <string name="pending_type_purchase">ক্রয়</string>
+    <string name="pending_type_payment">পেমেন্ট</string>
+    <string name="pending_type_stock">স্টক পরিবর্তন</string>
+    <string name="pending_type_transfer">স্টক স্থানান্তর</string>
+    <plurals name="pending_count">
+        <item quantity="one">%dটি পরিবর্তন সিঙ্কের অপেক্ষায়</item>
+        <item quantity="other">%dটি পরিবর্তন সিঙ্কের অপেক্ষায়</item>
+    </plurals>
+    <plurals name="pending_failed_count">
+        <item quantity="one">%dটিতে মনোযোগ প্রয়োজন</item>
+        <item quantity="other">%dটিতে মনোযোগ প্রয়োজন</item>
+    </plurals>
+    <plurals name="logout_pending_warning">
+        <item quantity="one">অফলাইনে করা %dটি পরিবর্তন এখনো পাঠানো হয়নি এবং সাইন আউট করলে হারিয়ে যাবে।</item>
+        <item quantity="other">অফলাইনে করা %dটি পরিবর্তন এখনো পাঠানো হয়নি এবং সাইন আউট করলে হারিয়ে যাবে।</item>
+    </plurals>
+</resources>

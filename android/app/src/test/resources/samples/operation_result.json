@@ -1,0 +1,54 @@
+{
+ "movements": [
+  {
+   "id": 15,
+   "type": "REDUCE",
+   "bucket": "ON_HAND",
+   "productId": 4,
+   "productName": "Paracetamol 500",
+   "variantId": 4,
+   "variantName": "Paracetamol 500",
+   "sku": "PCM-500",
+   "warehouseId": 4,
+   "warehouseName": "Main Warehouse",
+   "batchId": 3,
+   "lotNumber": "L1",
+   "quantity": -15,
+   "quantityBefore": 40.0,
+   "quantityAfter": 25.0,
+   "unitCode": "pcs",
+   "reason": "Issued / used",
+   "actorId": 4,
+   "actorName": "Asha Admin",
+   "createdAt": "2026-10-14T11:29:16.102052100Z"
+  }
+ ],
+ "balances": [
+  {
+   "warehouseId": 4,
+   "warehouseName": "Main Warehouse",
+   "variantId": 4,
+   "variantName": "Paracetamol 500",
+   "batchId": 3,
+   "lotNumber": "L1",
+   "expiryDate": "2027-03-31",
+   "onHand": 25.0,
+   "reserved": 0.0,
+   "damaged": 0.0,
+   "available": 25.0
+  },
+  {
+   "warehouseId": 4,
+   "warehouseName": "Main Warehouse",
+   "variantId": 4,
+   "variantName": "Paracetamol 500",
+   "batchId": 4,
+   "lotNumber": "L2",
+   "expiryDate": "2027-09-30",
+   "onHand": 20.0,
+   "reserved": 0.0,
+   "damaged": 0.0,
+   "available": 20.0
+  }
+ ]
+}

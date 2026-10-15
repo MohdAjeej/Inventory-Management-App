@@ -1,0 +1,20 @@
+{
+ "content": [
+  {
+   "id": 2,
+   "type": "LOW_STOCK",
+   "title": "Paracetamol 500 is running low",
+   "body": "Only 10 pcs left (minimum 10).",
+   "payload": {
+    "productId": 4,
+    "variantId": 4
+   },
+   "read": false,
+   "createdAt": "2026-10-14T11:29:16.871944Z"
+  }
+ ],
+ "page": 0,
+ "size": 30,
+ "totalElements": 1,
+ "totalPages": 1
+}

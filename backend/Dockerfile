@@ -1,25 +1,17 @@
-# Stage 1: Build
-FROM gradle:8.5-jdk21-alpine AS build
-
+# Stage 1: build with the project's Gradle wrapper
+FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
-
-# Copy source files
-COPY build.gradle settings.gradle ./
+COPY gradlew settings.gradle build.gradle ./
+COPY gradle ./gradle
+RUN chmod +x gradlew && ./gradlew --no-daemon dependencies > /dev/null
 COPY src ./src
+RUN ./gradlew --no-daemon bootJar -x test
 
-# Build application
-RUN gradle bootJar --no-daemon --stacktrace
-
-# Stage 2: Runtime
+# Stage 2: runtime
 FROM eclipse-temurin:21-jre-alpine
-
 WORKDIR /app
-
-# Copy jar from build stage
+RUN addgroup -S app && adduser -S app -G app && mkdir -p /app/uploads && chown app:app /app/uploads
 COPY --from=build /app/build/libs/*.jar app.jar
-
-# Expose port
+USER app
 EXPOSE 8082
-
-# Run application
 ENTRYPOINT ["java", "-jar", "app.jar"]

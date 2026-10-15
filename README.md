@@ -1,471 +1,215 @@
-# 📦 B2B Inventory Management App
+# Inventory Platform
 
-A full-stack inventory management solution for businesses with Android app and Spring Boot backend.
+A multi-tenant inventory management system that any kind of business can configure: a pharmacy, a bookstore, a hardware shop, a bakery, an electronics distributor, and so on. Each business defines its own categories, custom product fields, units, warehouses and team. The application is **inventory only**: no billing, sales or purchase orders, payments or accounting.
 
-## 🚀 Features
-
-### 📱 Android App
-- **Dashboard** - Real-time business overview with stats
-- **Inventory Management** - Full product CRUD with search, filters, and sorting
-- **Analytics** - Business insights with top categories and stock analysis
-- **Receipts** - Transaction history (stock in/out tracking)
-- **User Authentication** - Secure login and business registration
-- **Bottom Navigation** - Fixed navigation across all screens
-
-### 🔧 Backend API
-- RESTful API with Spring Boot
-- PostgreSQL database
-- JWT authentication (ready to integrate)
-- Docker containerized
-- Product, Business, and User management
+| Part | Stack |
+|------|-------|
+| Android app | Kotlin, Jetpack Compose (Material 3), ViewModel + StateFlow, Retrofit + OkHttp, kotlinx.serialization, DataStore |
+| Backend | Java 21, Spring Boot 3.4, Spring Security with JWT, Spring Data JPA, Flyway, springdoc-openapi, Apache POI |
+| Database | PostgreSQL 16 (Docker Compose) |
+| Build | Gradle (wrappers included) |
 
 ---
 
-## 📋 Prerequisites
+## Features
 
-### For Backend:
-- Docker Desktop installed
-- Java 21 (for local development)
-- PostgreSQL (via Docker)
+- **Workspaces for any business**: registration creates the business, its first administrator, neutral default units (pieces, boxes, kg, litres, metres…) and a *Main Warehouse*. The business type is a description only and never restricts features.
+- **Tenant isolation**: the business is always derived from the authenticated membership, never from request parameters. Every lookup is scoped to that business, so another business's ids return `404`. Integration tests check this.
+- **Dynamic catalog**:
+  - Category and subcategory tree with archiving.
+  - Custom fields per category or for all products: text, number, date, yes/no, dropdown and multi-select, each optionally required. Subcategories inherit their parents' fields.
+  - Fields are stored as PostgreSQL `JSONB` and validated **on the server**.
+  - Units with decimal precision, and unit conversions (general or product-specific).
+- **Products**:
+  - Simple form (name, category, quantity, unit), plus the category's fields and optional brand, model, SKU, barcode, description, images and minimum stock.
+  - Variants (size, colour…), each with its own SKU, barcode and threshold.
+  - Search by name, brand, SKU or barcode. Filter by category (including subcategories), stock status and archive state.
+- **Stock operations**:
+  - Opening stock, add, reduce, adjust (with a required reason), transfer between warehouses, damaged and reserved stock, optional batch/lot with expiry, and serial numbers.
+  - Each operation locks the stock-balance row (`SELECT … FOR UPDATE`) inside a transaction.
+  - Stock can't go negative unless the business allows it.
+- **Audit**: every change appends an immutable `stock_movements` row recording type, quantity, before and after quantities, reason, notes, who did it and when. A database trigger blocks `UPDATE` and `DELETE` on that table. Configuration changes go to `audit_events`.
+- **Stock counts**: snapshot a warehouse (optionally one category), enter counted quantities, then reconcile into `COUNT_ADJUST` movements.
+- **Warehouses and branches**: a default warehouse, storage locations, archiving (only when empty).
+- **Employees**:
+  - Three roles: Business Admin, Inventory Manager and Staff.
+  - Per-person permission overrides.
+  - Invitations by shareable code, plus deactivation, which signs the person out immediately.
+  - Every permission is enforced on the server.
+- **Dashboard**: total products, total stock, low and out-of-stock items, quick actions, recently updated products, recent stock activity, today's sales (for members who can view analytics), and summaries by category and by warehouse.
+- **Pricing**: purchase price, selling price and default tax rate per product. Cost uses the weighted average across purchases. The product page shows profit per unit, margin, stock value and potential profit.
+- **Sales**:
+  - Multi-product sales with discounts, tax, an optional customer, an invoice number, a date and time, and payments (Cash, UPI, Card, Bank transfer, Credit).
+  - Payment status can be Paid, Partly paid or Unpaid, and more payments can be added later.
+  - Stock is reduced automatically in the same transaction.
+  - Price and cost are saved with every line, so later price changes don't rewrite history.
+  - Each sale has a PDF receipt that can be shared or printed.
+- **Returns and cancellations**:
+  - Partial returns: resalable items are restocked and damaged items are recorded separately, with refunds.
+  - Full cancellation restores stock exactly once.
+  - Nothing is overwritten.
+- **Purchases and suppliers**: record goods received from dealers. This adds stock, updates the average cost, tracks payments to suppliers, and can be cancelled (which removes the stock again).
+- **Sales analytics**:
+  - Today's and this month's sales, net sales, cost of goods sold, gross profit and margin, returns and discounts.
+  - Best, lowest and never-sold products, fast and slow movers, and trending and declining products.
+  - Profit by product and over time, sales by category, stock value and potential profit, and plain-language insights.
+  - Date presets and custom ranges, compared with the previous period. The product ranking exports to CSV or Excel.
+- **Reports**: inventory, low stock and movements, with date, warehouse, category and type filters, plus **CSV and Excel (.xlsx) export**.
+- **Notifications**:
+  - In-app low-stock, out-of-stock and team alerts, deduplicated so repeated movements don't spam.
+  - Delivery goes through a `NotificationChannel` interface, so a push channel (e.g. FCM) can be added as another bean.
 
-### For Android App:
-- Android Studio
-- Android device or emulator (API 24+)
-- ADB tools
+### Roles (defaults; admins can override per person)
+
+| Permission | Admin | Inventory Manager | Staff |
+|---|:-:|:-:|:-:|
+| View products and stock | ✓ | ✓ | ✓ |
+| Create / edit / archive products | ✓ | ✓ | |
+| Add stock / reduce stock | ✓ | ✓ | ✓ |
+| Adjust stock, damaged and reserved | ✓ | ✓ | |
+| Transfer stock | ✓ | ✓ | |
+| Run stock counts | ✓ | ✓ | ✓ (reconcile needs *Adjust*) |
+| View and export reports | ✓ | ✓ | |
+| Record sales, take payments, manage customers | ✓ | ✓ | ✓ |
+| Cancel sales / record returns | ✓ | ✓ | |
+| Record purchases, manage suppliers | ✓ | ✓ | |
+| View sales, profit and analytics (and see purchase costs) | ✓ | ✓ | |
+| Manage categories, fields and units | ✓ | ✓ | |
+| Manage warehouses | ✓ | ✓ | |
+| Manage employees | ✓ | | |
+| Business profile and settings | ✓ | | |
 
 ---
 
-## 🛠️ Setup Instructions
+## Prerequisites (Windows)
 
-### 1️⃣ **Backend Setup**
+- **JDK 21**, used by the backend (`backend/gradle.properties` points Gradle at it).
+- **JDK 17 or newer** for the Android build (`android/gradle.properties` points at `C:\Program Files\Java\jdk-17`; change it if yours is elsewhere).
+- **Android SDK** with platform 35. `android/local.properties` must contain `sdk.dir=...` (Android Studio creates it).
+- **Docker Desktop**, which must be running for PostgreSQL and for the backend tests (Testcontainers).
+- An Android phone with USB debugging enabled, or an emulator.
 
-#### Option A: Using Docker (Recommended)
+## Configuration
+
+Copy the sample environment file and set your own secrets:
 
 ```powershell
-# Start database and backend
-docker-compose up -d
-
-# Check status
-docker ps
-
-# View logs
-docker logs -f b2b-inventory-backend
+Copy-Item .env.example .env
+# Edit .env: set POSTGRES_PASSWORD / DB_PASSWORD, and generate a JWT secret:
+[Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }))
 ```
 
-The backend will be available at: **http://localhost:8082**
+`.env` is git-ignored. The backend reads it automatically (`spring.config.import`), and so does Docker Compose. Secrets are not stored in source code.
 
-#### Option B: Local Development
+| Variable | Purpose | Default |
+|---|---|---|
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Database container | `inventory_platform` / `postgres` / – |
+| `POSTGRES_PORT` | Host port for the database | `5434` (avoids a local PostgreSQL on 5432) |
+| `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` | Backend datasource | `jdbc:postgresql://localhost:5434/inventory_platform` |
+| `JWT_SECRET` | HMAC key, base64, ≥ 32 bytes | **required** |
+| `SERVER_PORT` | Backend port | `8082` |
+| `UPLOADS_DIR` | Where product images and logos are stored | `uploads` |
+
+## Run it (exact PowerShell commands)
+
+From the repository root:
 
 ```powershell
+# 1. Start PostgreSQL (Docker Desktop must be running)
+docker compose up -d postgres
+docker compose ps        # wait until inventory-platform-db is "healthy"
+
+# 2. Run the backend (Flyway creates the schema on first start)
 cd backend
-
-# Run with Gradle
 .\gradlew.bat bootRun
+#    API:     http://localhost:8082
+#    Swagger: http://localhost:8082/swagger-ui.html
 ```
 
-#### Database Access
-- **Host:** localhost
-- **Port:** 5433
-- **Database:** b2b_inventory
-- **Username:** postgres
-- **Password:** postgres123
-
-### 2️⃣ **Android App Setup**
-
-#### Build the APK
+In a second PowerShell window, build and install the app:
 
 ```powershell
 cd android
 
-# Clean build
-.\gradlew.bat clean
+# Physical phone on the same Wi-Fi: use your PC's LAN address (find it with: ipconfig)
+.\gradlew.bat assembleDebug -PapiBaseUrl=http://192.168.29.166:8082/
+#   (emulator instead: -PapiBaseUrl=http://10.0.2.2:8082/)
 
-# Build debug APK
-.\gradlew.bat assembleDebug
-```
-
-#### Install on Device
-
-```powershell
-# Check connected devices
-adb devices
-
-# Install APK
+adb devices                                              # phone must be listed
 adb install -r app\build\outputs\apk\debug\app-debug.apk
+adb shell am start -n com.b2binventory.app/.MainActivity
 ```
 
-### 3️⃣ **Configuration**
+If you leave out `-PapiBaseUrl`, the default is `http://192.168.29.166:8082/`. You can also set it permanently in `%USERPROFILE%\.gradle\gradle.properties` as `apiBaseUrl=http://<your-ip>:8082/`.
 
-Update the API base URL in `android/app/src/main/java/com/b2binventory/app/data/ApiConfig.kt`:
+**Phone can't reach the backend?** Allow port 8082 through Windows Firewall (run PowerShell as Administrator), then open `http://<pc-ip>:8082/v3/api-docs` in the phone's browser to check:
 
-```kotlin
-object ApiConfig {
-    const val BASE_URL = "http://10.0.2.2:8082/"  // For emulator
-    // const val BASE_URL = "http://YOUR_IP:8082/"  // For physical device
-}
-```
-
-To find your IP address:
 ```powershell
-ipconfig | findstr IPv4
+New-NetFirewallRule -DisplayName "Inventory backend 8082" -Direction Inbound -Protocol TCP -LocalPort 8082 -Action Allow
 ```
 
----
+Plain HTTP is allowed only in **debug** builds (`app/src/debug/res/xml/network_security_config.xml`). Release builds need HTTPS.
 
-## 🎯 Usage
+### Everything in Docker (optional)
 
-### First Time Setup
-
-1. **Start Backend:**
-   ```powershell
-   docker-compose up -d
-   ```
-
-2. **Install App:**
-   ```powershell
-   adb install -r android\app\build\outputs\apk\debug\app-debug.apk
-   ```
-
-3. **Register Business:**
-   - Open the app
-   - Tap "Create Account"
-   - Fill in business details
-   - Register
-
-4. **Login:**
-   - Use your email and password
-   - Access the dashboard
-
-### Test Credentials
-```
-Email: test@example.com
-Password: test123
-```
-
----
-
-## 📱 App Screens
-
-### 🏠 Dashboard
-- Total Products count
-- Total Stock quantity
-- Low Stock alerts
-- Out of Stock warnings
-- Quick actions (Add Product, View Inventory, Analytics, Receipts)
-
-### 📦 Inventory
-- Search products by name, SKU, brand
-- Filter by category with counts
-- Sort by name or stock
-- View in List or Grid mode
-- Stock status badges (In Stock, Low Stock, Out of Stock)
-- Product cards with emoji icons
-
-### 📊 Analytics
-- Overview cards (Total Products, Total Stock, Low Stock, Out of Stock)
-- Top Categories with product counts
-- Top Products by stock levels
-- Real-time data from backend
-
-### 🧾 Receipts
-- Transaction history (Stock In/Out)
-- Search receipts
-- Filter by transaction type
-- Date and time stamps
-- Product details and quantities
-
-### ⚙️ More (Settings)
-- User profile
-- Business information
-- Logout
-
----
-
-## 🔌 API Endpoints
-
-### Authentication
-```
-POST /api/auth/login
-POST /api/auth/register-business
-```
-
-### Products
-```
-GET    /api/inventory/products?businessId={id}&category={category}&search={query}
-POST   /api/inventory/products?businessId={id}&userId={id}
-GET    /api/inventory/products/{id}
-PUT    /api/inventory/products/{id}?userId={userId}
-DELETE /api/inventory/products/{id}
-```
-
-### Stock Management
-```
-POST /api/inventory/products/{id}/stock?userId={userId}
-GET  /api/inventory/products/{id}/stock-history
-```
-
----
-
-## 🐳 Docker Commands
-
-### Start Services
 ```powershell
-docker-compose up -d
+docker compose --profile full up -d --build    # database + backend container on :8082
 ```
 
-### Stop Services
-```powershell
-docker-compose down
-```
-
-### View Logs
-```powershell
-# Backend logs
-docker logs -f b2b-inventory-backend
-
-# Database logs
-docker logs -f b2b-inventory-db
-```
-
-### Restart Services
-```powershell
-docker-compose restart
-```
-
-### Rebuild Backend
-```powershell
-docker-compose build backend
-docker-compose up -d backend
-```
-
----
-
-## 🔧 Development
-
-### Backend Development
+## Tests
 
 ```powershell
 cd backend
-
-# Run locally
-.\gradlew.bat bootRun
-
-# Run tests
 .\gradlew.bat test
-
-# Build JAR
-.\gradlew.bat build
 ```
 
-### Android Development
+The suite starts a throwaway PostgreSQL container and covers:
+- registration, login, token rotation and validation errors;
+- role and permission enforcement, overrides, and deactivation taking effect immediately;
+- tenant isolation across products, categories, warehouses, stock, reports and lookups;
+- stock rules: negative stock, decimals, transfers, damaged and reserved stock, batches and expiry, serial numbers;
+- **20 concurrent reductions never overselling**;
+- stock-count reconciliation, low-stock notifications, and CSV/XLSX exports.
 
-```powershell
-cd android
+## Using the app (first run)
 
-# Clean build
-.\gradlew.bat clean
+1. **Register a new business**: business details, then your administrator account.
+2. Optionally go to **More → Business settings** to turn on batch/expiry, serial numbers, or damaged/reserved tracking, and set the default low-stock threshold.
+3. **More → Categories & fields**: create categories and subcategories, then add custom fields (for example *Author* for books, or *Strength* and *Dosage form* for medicines).
+4. **Products → Add product**: name, category, unit and opening quantity. The category's fields appear automatically.
+5. **Stock → Update stock** (or the buttons on a product) to add, reduce, adjust or transfer. Every change appears in the history.
+6. **More → Employees → Invite**: share the code. The person taps *I have an invitation code* on the sign-in screen.
+7. **Reports**: filter, then export CSV or Excel. Files are saved to Downloads, and you're offered a share sheet.
 
-# Build debug
-.\gradlew.bat assembleDebug
+## API
 
-# Build release
-.\gradlew.bat assembleRelease
+See [`docs/API.md`](docs/API.md) for an overview. Interactive documentation is at `/swagger-ui.html`: authorise with the `accessToken` from `POST /api/auth/login`.
 
-# Run lint
-.\gradlew.bat lint
+## Project layout
+
+```
+backend/src/main/java/com/b2binventory/
+  config/        security, OpenAPI, properties
+  controller/    REST endpoints (no business id parameters)
+  dto/           request/response records with validation
+  entity/        JPA entities
+  exception/     error types + global JSON error handler
+  repository/    Spring Data repositories (tenant-scoped finders)
+  security/      JWT, current user, permissions
+  service/       business logic, stock engine, reports, notifications
+  validation/    custom-field validation
+backend/src/main/resources/db/migration/   Flyway migrations
+android/app/src/main/java/com/b2binventory/app/
+  data/          Retrofit API, DTOs, session store, auth repository
+  di/            manual dependency container
+  ui/            Compose screens + ViewModels per feature
+legacy/          the previous version of the code, kept for reference (not built)
 ```
 
----
+## Notes and limitations
 
-## 📂 Project Structure
-
-```
-b2b-inventory-app/
-├── android/                    # Android application
-│   └── app/
-│       └── src/main/java/com/b2binventory/app/
-│           ├── data/          # API, models, session
-│           ├── ui/
-│           │   ├── analytics/ # Analytics screen
-│           │   ├── auth/      # Login, Register
-│           │   ├── dashboard/ # Home screen
-│           │   ├── inventory/ # Product management
-│           │   ├── receipts/  # Transaction history
-│           │   ├── navigation/# Bottom nav, routes
-│           │   └── settings/  # Settings screen
-│           └── theme/         # Material Design theme
-│
-├── backend/                    # Spring Boot backend
-│   └── src/main/java/com/b2binventory/
-│       ├── controller/        # REST controllers
-│       ├── domain/           # Entity models
-│       ├── dto/              # Data transfer objects
-│       ├── repository/       # JPA repositories
-│       └── service/          # Business logic
-│
-├── docker-compose.yml         # Docker configuration
-└── README.md                  # This file
-```
-
----
-
-## 🎨 Design
-
-- **Material Design 3** UI components
-- **Color Scheme:**
-  - Primary: Blue (#2196F3)
-  - Success: Green (#4CAF50)
-  - Warning: Orange (#FFA726)
-  - Error: Red (#F44336)
-- **Icons:** Material Icons with category emojis
-- **Typography:** Roboto font family
-
----
-
-## 🐛 Troubleshooting
-
-### Backend Not Starting
-```powershell
-# Check if port 8082 is in use
-netstat -ano | findstr :8082
-
-# Stop conflicting process
-taskkill /PID <PID> /F
-
-# Restart Docker containers
-docker-compose down
-docker-compose up -d
-```
-
-### Database Connection Issues
-```powershell
-# Check database is running
-docker ps | findstr postgres
-
-# Restart database
-docker restart b2b-inventory-db
-
-# Check logs
-docker logs b2b-inventory-db
-```
-
-### App Can't Connect to Backend
-1. Check backend is running: `docker ps`
-2. Verify API URL in `ApiConfig.kt`
-3. For emulator: use `10.0.2.2:8082`
-4. For device: use your computer's IP address
-
-### Build Failures
-```powershell
-# Clean Gradle cache
-cd android
-.\gradlew.bat clean
-
-# Or backend
-cd backend
-.\gradlew.bat clean
-
-# Delete .gradle folders if needed
-Remove-Item -Recurse -Force .gradle
-```
-
----
-
-## 📝 Environment Variables
-
-Create a `.env` file in the root directory (optional):
-
-```env
-# Database
-POSTGRES_DB=b2b_inventory
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres123
-
-# Backend
-SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/b2b_inventory
-SPRING_DATASOURCE_USERNAME=postgres
-SPRING_DATASOURCE_PASSWORD=postgres123
-SERVER_PORT=8082
-```
-
----
-
-## 🚀 Deployment
-
-### Backend Deployment
-1. Build production JAR
-2. Configure production database
-3. Deploy to cloud (AWS, Azure, GCP, Heroku)
-4. Update API URL in Android app
-
-### Android Deployment
-1. Generate signed APK/AAB
-2. Update version in `build.gradle`
-3. Test thoroughly
-4. Publish to Google Play Store
-
----
-
-## 📄 API Documentation
-
-API documentation is available via Swagger UI (when backend is running):
-```
-http://localhost:8082/swagger-ui.html
-```
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
----
-
-## 📜 License
-
-This project is licensed under the MIT License.
-
----
-
-## 👥 Authors
-
-- **Development Team** - Initial work
-
----
-
-## 🙏 Acknowledgments
-
-- Spring Boot framework
-- Jetpack Compose for Android UI
-- Material Design guidelines
-- PostgreSQL database
-
----
-
-## 📞 Support
-
-For issues and questions:
-- Create an issue on GitHub
-- Email: support@b2binventory.com
-
----
-
-## 🔄 Version History
-
-### v1.0.0 (Current)
-- ✅ Dashboard with real-time stats
-- ✅ Full inventory management
-- ✅ Analytics screen
-- ✅ Receipts/Transaction history
-- ✅ Bottom navigation
-- ✅ Search, filter, sort functionality
-- ✅ Backend API integration
-- ✅ Docker containerization
-
----
-
-**Made with ❤️ for businesses worldwide**
+- Invitations are shared as codes (there's a share button); no email server is configured.
+- Notifications are in-app; push delivery needs a `NotificationChannel` implementation (for example FCM) and device token registration.
+- Storage locations are managed per warehouse, but stock balances are tracked per warehouse, not per bin.
+- Images are stored on the backend's local disk (`UPLOADS_DIR`) under random names and served from `/api/files/…`. Use object storage in production.
+- The schema is created by Flyway (`ddl-auto: validate`). This version starts from a fresh `inventory_platform` database; data in the previous `b2b_inventory` database is not migrated.

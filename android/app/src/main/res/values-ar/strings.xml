@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_retry">إعادة المحاولة</string>
+    <string name="appearance_title">المظهر واللغة</string>
+    <string name="appearance_theme">السمة</string>
+    <string name="appearance_theme_system">حسب إعداد الهاتف</string>
+    <string name="appearance_theme_light">فاتح</string>
+    <string name="appearance_theme_dark">داكن</string>
+    <string name="appearance_language">اللغة</string>
+    <string name="appearance_language_system">لغة الهاتف</string>
+    <string name="appearance_language_note">قد تظهر الرسائل المرسلة من الخادم، مثل بعض رسائل الخطأ، باللغة الإنجليزية.</string>
+    <string name="backup_title">النسخ الاحتياطي والاستعادة</string>
+    <string name="backup_needs_connection">يتطلب النسخ الاحتياطي والاستعادة اتصالًا بالخادم.</string>
+    <string name="backup_create_title">إنشاء نسخة احتياطية</string>
+    <string name="backup_create_body">يحفظ كل بيانات هذا النشاط — المنتجات والمخزون والمبيعات والمشتريات والعملاء والمورّدين — في ملف ضمن التنزيلات. احتفظ به في مكان آمن مثل Google Drive.</string>
+    <string name="backup_create_action">إنشاء نسخة احتياطية</string>
+    <string name="backup_saved">تم حفظ %1$s في التنزيلات</string>
+    <string name="backup_restore_title">الاستعادة من نسخة احتياطية</string>
+    <string name="backup_restore_body">ينشئ نشاطًا تجاريًا جديدًا من ملف النسخة الاحتياطية. لا يتغير نشاطك الحالي. لا تتم استعادة أعضاء الفريق؛ ستكون أنت المسؤول.</string>
+    <string name="backup_restore_action">اختر ملف النسخة الاحتياطية</string>
+    <string name="backup_not_a_backup">هذا الملف ليس نسخة احتياطية للمخزون.</string>
+    <string name="backup_unknown_business">النسخة الاحتياطية</string>
+    <string name="backup_restore_confirm_title">استعادة النسخة الاحتياطية؟</string>
+    <string name="backup_restore_confirm_body">سيتم إنشاء نشاط تجاري جديد من “%1$s” وستنتقل إليه. لن يتغير نشاطك الحالي.</string>
+    <string name="backup_restore_confirm_action">استعادة</string>
+    <string name="offline_saved">تم الحفظ دون اتصال. سيُرسل عند عودة الاتصال.</string>
+    <string name="offline_banner">غير متصل — يتم عرض البيانات المحفوظة</string>
+    <string name="pending_view">عرض</string>
+    <string name="pending_title">بانتظار المزامنة</string>
+    <string name="pending_sync_now">مزامنة الآن</string>
+    <string name="pending_empty_title">تمت مزامنة كل شيء</string>
+    <string name="pending_empty_body">تظهر هنا المبيعات والمشتريات وتغييرات المخزون التي تمت دون اتصال حتى تصل إلى الخادم.</string>
+    <string name="pending_explainer">هذه التغييرات محفوظة على هذا الهاتف وتُرسل تلقائيًا عندما يمكن الوصول إلى الخادم. إذا رفض الخادم أحدها (مثل عدم كفاية المخزون)، يبقى هنا لتعيد المحاولة أو تتجاهله.</string>
+    <string name="pending_refused">لم يُقبل: %1$s</string>
+    <string name="pending_discard">تجاهل</string>
+    <string name="pending_discard_title">تجاهل هذا التغيير؟</string>
+    <string name="pending_discard_body">سيُحذف %1$s · %2$s من هذا الهاتف ولن يُرسل أبدًا.</string>
+    <string name="pending_type_sale">بيع</string>
+    <string name="pending_type_purchase">شراء</string>
+    <string name="pending_type_payment">دفعة</string>
+    <string name="pending_type_stock">تغيير مخزون</string>
+    <string name="pending_type_transfer">نقل مخزون</string>
+    <plurals name="pending_count">
+        <item quantity="zero">%d تغييرات بانتظار المزامنة</item>
+        <item quantity="one">%d تغيير بانتظار المزامنة</item>
+        <item quantity="two">%d تغييرات بانتظار المزامنة</item>
+        <item quantity="few">%d تغييرات بانتظار المزامنة</item>
+        <item quantity="many">%d تغييرات بانتظار المزامنة</item>
+        <item quantity="other">%d تغييرات بانتظار المزامنة</item>
+    </plurals>
+    <plurals name="pending_failed_count">
+        <item quantity="zero">%d تحتاج إلى انتباه</item>
+        <item quantity="one">%d يحتاج إلى انتباه</item>
+        <item quantity="two">%d تحتاج إلى انتباه</item>
+        <item quantity="few">%d تحتاج إلى انتباه</item>
+        <item quantity="many">%d تحتاج إلى انتباه</item>
+        <item quantity="other">%d تحتاج إلى انتباه</item>
+    </plurals>
+    <plurals name="logout_pending_warning">
+        <item quantity="zero">لم تُرسل بعد %d تغييرات تمت دون اتصال، وستُفقد إذا سجّلت الخروج.</item>
+        <item quantity="one">لم يُرسل بعد %d تغيير تم دون اتصال، وسيُفقد إذا سجّلت الخروج.</item>
+        <item quantity="two">لم تُرسل بعد %d تغييرات تمت دون اتصال، وستُفقد إذا سجّلت الخروج.</item>
+        <item quantity="few">لم تُرسل بعد %d تغييرات تمت دون اتصال، وستُفقد إذا سجّلت الخروج.</item>
+        <item quantity="many">لم تُرسل بعد %d تغييرات تمت دون اتصال، وستُفقد إذا سجّلت الخروج.</item>
+        <item quantity="other">لم تُرسل بعد %d تغييرات تمت دون اتصال، وستُفقد إذا سجّلت الخروج.</item>
+    </plurals>
+</resources>
