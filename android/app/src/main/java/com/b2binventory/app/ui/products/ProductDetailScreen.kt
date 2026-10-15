@@ -32,6 +32,7 @@ import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.b2binventory.app.data.remote.*
 import com.b2binventory.app.ui.common.*
+import com.b2binventory.app.ui.theme.MetricTextStyle
 import com.b2binventory.app.ui.dashboard.MovementRow
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -161,11 +162,7 @@ fun ProductDetailScreen(onBack: () -> Unit, onEdit: (Long) -> Unit, onStockOpera
     ) { padding ->
         LoadableContent(state, vm::load) { p ->
             FormColumn(padding) {
-                if (p.archived) {
-                    Surface(color = MaterialTheme.colorScheme.tertiaryContainer, shape = MaterialTheme.shapes.small) {
-                        Text("This product is archived. Restore it to change its stock.", Modifier.padding(12.dp))
-                    }
-                }
+                if (p.archived) MessageBanner(BannerKind.WARNING, "This product is archived. Restore it to change its stock.")
                 if (p.images.isNotEmpty() || me?.can("PRODUCT_EDIT") == true) {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(p.images, key = { it.id }) { img ->
@@ -189,13 +186,37 @@ fun ProductDetailScreen(onBack: () -> Unit, onEdit: (Long) -> Unit, onStockOpera
                 SectionCard {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(p.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            androidx.compose.material3.Text(p.name, style = MaterialTheme.typography.titleLarge)
                             listOfNotNull(p.brand, p.model).joinToString(" · ").takeIf { it.isNotEmpty() }?.let {
-                                Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                androidx.compose.material3.Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                         StatusChip(p.status)
                     }
+                    // The number people look for first: what can be used or sold right now.
+                    val tone = statusColor(p.status)
+                    Surface(color = tone.copy(alpha = 0.08f), shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+                        Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Available stock", style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Row(verticalAlignment = Alignment.Bottom) {
+                                    androidx.compose.material3.Text(Fmt.qty(p.stock.available), style = MetricTextStyle, color = tone)
+                                    Spacer(Modifier.width(4.dp))
+                                    androidx.compose.material3.Text(p.baseUnit.code, style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 4.dp))
+                                }
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text("Minimum stock", style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                androidx.compose.material3.Text("${Fmt.qty(p.effectiveMinStock.toDouble())} ${p.baseUnit.code}",
+                                    style = MaterialTheme.typography.titleSmall)
+                            }
+                        }
+                    }
+                    if (!p.archived) StockActions(p.id, onStockOperation)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     LabelValue("Category", p.categoryPath ?: "Uncategorized")
                     LabelValue("SKU", p.defaultVariant?.sku)
                     LabelValue("Barcode", p.defaultVariant?.barcode)
@@ -207,7 +228,7 @@ fun ProductDetailScreen(onBack: () -> Unit, onEdit: (Long) -> Unit, onStockOpera
                     if (p.trackSerials) LabelValue("Tracking", "Serial numbers")
                     p.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
                 }
-                SectionCard("Stock") {
+                SectionCard("Stock by location") {
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                         StockFigure("Available", p.stock.available, p.baseUnit.code)
                         StockFigure("On hand", p.stock.onHand, p.baseUnit.code)
@@ -217,7 +238,9 @@ fun ProductDetailScreen(onBack: () -> Unit, onEdit: (Long) -> Unit, onStockOpera
                     if (p.balances.isNotEmpty()) {
                         HorizontalDivider()
                         p.balances.forEach { b ->
-                            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Warehouse, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(Modifier.width(8.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(b.warehouseName)
                                     val extra = listOfNotNull(
@@ -227,11 +250,10 @@ fun ProductDetailScreen(onBack: () -> Unit, onEdit: (Long) -> Unit, onStockOpera
                                     ).joinToString(" · ")
                                     if (extra.isNotEmpty()) Text(extra, style = MaterialTheme.typography.bodySmall)
                                 }
-                                Text("${Fmt.qty(b.available)} ${p.baseUnit.code}")
+                                Text("${Fmt.qty(b.available)} ${p.baseUnit.code}", style = MaterialTheme.typography.titleSmall)
                             }
                         }
                     }
-                    if (!p.archived) StockActions(p.id, onStockOperation)
                 }
                 PricingCard(p)
                 if (p.attributes.isNotEmpty()) {
@@ -263,7 +285,7 @@ fun ProductDetailScreen(onBack: () -> Unit, onEdit: (Long) -> Unit, onStockOpera
                     }
                 }
                 SectionCard("Recent history") {
-                    if (history.isEmpty()) Text("No stock movements yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (history.isEmpty()) EmptyState("No stock movements yet", icon = Icons.Default.History)
                     history.forEach { MovementRow(it) }
                 }
                 Spacer(Modifier.height(24.dp))
@@ -333,17 +355,26 @@ private fun StockActions(productId: Long, onStockOperation: (Long, String) -> Un
     val me = LocalMe.current ?: return
     // "SALE" opens the Record sale screen; the others open the stock operation screen.
     val actions = buildList {
-        if (me.can("STOCK_ADD")) add("ADD" to "Add Stock")
-        if (me.can("STOCK_REDUCE")) add("REDUCE" to "Reduce Stock")
-        if (me.can("SALE_RECORD")) add("SALE" to "Record Sale")
-        if (me.can("PURCHASE_MANAGE")) add("PURCHASE" to "Record Purchase")
-        if (me.can("STOCK_ADJUST")) add("ADJUST" to "Correct stock")
-        if (me.can("STOCK_TRANSFER")) add("TRANSFER" to "Move")
+        if (me.can("STOCK_ADD")) add(Triple("ADD", "Add Stock", Icons.Default.AddCircleOutline))
+        if (me.can("STOCK_REDUCE")) add(Triple("REDUCE", "Reduce Stock", Icons.Default.RemoveCircleOutline))
+        if (me.can("SALE_RECORD")) add(Triple("SALE", "Record Sale", Icons.Default.PointOfSale))
+        if (me.can("PURCHASE_MANAGE")) add(Triple("PURCHASE", "Record Purchase", Icons.Default.ShoppingCart))
+        if (me.can("STOCK_ADJUST")) add(Triple("ADJUST", "Correct stock", Icons.Default.Tune))
+        if (me.can("STOCK_TRANSFER")) add(Triple("TRANSFER", "Move", Icons.Default.SwapHoriz))
     }
     if (actions.isEmpty()) return
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        actions.forEach { (type, label) ->
-            FilledTonalButton(onClick = { onStockOperation(productId, type) }) { Text(label) }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        actions.forEachIndexed { i, (type, label, icon) ->
+            // The first two (normally Add / Reduce) are the main actions.
+            if (i < 2) {
+                Button(onClick = { onStockOperation(productId, type) }) {
+                    Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(label)
+                }
+            } else {
+                OutlinedButton(onClick = { onStockOperation(productId, type) }) {
+                    Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(label)
+                }
+            }
         }
     }
 }

@@ -117,6 +117,7 @@ object Fmt {
     }
 }
 
+@Composable
 fun statusColor(status: String): Color = when (status) {
     "OUT_OF_STOCK" -> StatusColors.out
     "LOW_STOCK" -> StatusColors.low

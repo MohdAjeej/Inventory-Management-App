@@ -17,6 +17,7 @@ class AuthAndEmployeeTest extends IntegrationTest {
         assertThat(me.status()).isEqualTo(200);
         assertThat(me.get("role").asText()).isEqualTo("ADMIN");
         assertThat(me.get("businessName").asText()).isEqualTo("Seed Co");
+        assertThat(me.get("memberships").get(0).get("businessType").asText()).isEqualTo("Testing");
 
         Response login = post(null, "/api/auth/login", Map.of("email", admin.email(), "password", admin.password()));
         assertThat(login.status()).isEqualTo(200);

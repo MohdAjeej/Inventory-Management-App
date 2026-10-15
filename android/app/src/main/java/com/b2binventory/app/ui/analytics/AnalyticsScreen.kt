@@ -385,7 +385,7 @@ private fun OverviewTab(vm: AnalyticsViewModel, onOpenProduct: (Long) -> Unit, o
 @Composable
 private fun KpiCard(label: String, value: String, growth: Double?, icon: ImageVector, modifier: Modifier = Modifier,
                     note: String? = null) {
-    ElevatedCard(modifier) {
+    AppCard(modifier) {
         Column(Modifier.padding(16.dp)) {
             Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(8.dp))
@@ -440,9 +440,8 @@ private fun ProductsTab(vm: AnalyticsViewModel, onOpenProduct: (Long) -> Unit) {
     val overview by vm.overview.collectAsStateWithLifecycle()
     val cur = overview.data?.period?.currencyCode ?: "INR"
     Column {
-        OutlinedTextField(query.q, { v -> vm.setQuery({ it.copy(q = v) }, debounce = true) },
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), singleLine = true,
-            leadingIcon = { Icon(Icons.Default.Search, null) }, placeholder = { Text("Search product or SKU") })
+        SearchField(query.q, { v -> vm.setQuery({ it.copy(q = v) }, debounce = true) }, "Search product or SKU",
+            Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             item {
                 ChipMenu(query.category?.name ?: "All categories", query.category != null,
@@ -536,7 +535,7 @@ private fun StockVsSalesRow(p: ProductPerformance, onClick: () -> Unit) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RankingRow(p: ProductPerformance, currency: String, onClick: () -> Unit) {
-    ElevatedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    AppCard(onClick = onClick) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("#${p.rank}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
@@ -717,7 +716,7 @@ private fun InsightCard(i: Insight, canAddStock: Boolean, onOpenProduct: (Long) 
         "WARNING" -> Icons.Default.WarningAmber to StatusColors.low
         else -> Icons.Default.Lightbulb to MaterialTheme.colorScheme.primary
     }
-    ElevatedCard(Modifier.fillMaxWidth()) {
+    AppCard {
         Row(Modifier.padding(16.dp)) {
             Icon(icon, null, tint = color)
             Spacer(Modifier.width(12.dp))

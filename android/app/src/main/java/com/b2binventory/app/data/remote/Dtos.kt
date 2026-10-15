@@ -64,7 +64,8 @@ data class InvitationPreview(
 )
 
 @Serializable
-data class MembershipSummary(val membershipId: Long, val businessId: Long, val businessName: String, val role: String)
+data class MembershipSummary(val membershipId: Long, val businessId: Long, val businessName: String, val role: String,
+                             val businessType: String? = null)
 
 @Serializable
 data class Me(
@@ -583,6 +584,8 @@ data class Dashboard(
     val recentlyUpdated: List<RecentProduct> = emptyList(),
     /** Only sent to members who can view analytics. */
     val sales: SalesHighlights? = null,
+    /** Products with the most available stock, highest first. */
+    val mostStocked: List<RecentProduct> = emptyList(),
 )
 
 @Serializable
@@ -608,6 +611,26 @@ data class SalesHighlights(
     val monthProductsWithNoSales: Long = 0,
     val inventory: InventoryValue = InventoryValue(),
 )
+
+/** Stock movement totals for a period (GET api/reports/movement-summary). */
+@Serializable
+data class MovementSummary(
+    val from: String? = null,
+    val to: String? = null,
+    val totalIn: Double = 0.0,
+    val totalOut: Double = 0.0,
+    val movementCount: Long = 0,
+    val byType: List<TypeTotal> = emptyList(),
+    val fastMoving: List<ProductMovement> = emptyList(),
+    val slowMoving: List<ProductMovement> = emptyList(),
+)
+
+@Serializable
+data class TypeTotal(val type: String, val count: Long = 0, val quantity: Double = 0.0)
+
+@Serializable
+data class ProductMovement(val productId: Long, val productName: String, val unit: String = "", val quantityOut: Double = 0.0,
+                           val available: Double = 0.0)
 
 @Serializable
 data class InventoryRow(

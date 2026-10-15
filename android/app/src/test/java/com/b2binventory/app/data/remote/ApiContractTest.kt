@@ -101,6 +101,15 @@ class ApiContractTest {
     }
 
     @Test
+    fun movementSummary() {
+        val s = decode("movement_summary", MovementSummary.serializer())
+        assertEquals(82.0, s.totalOut, 0.0)
+        assertEquals("Ply 18mm", s.fastMoving.first().productName)
+        assertEquals("Flush door", s.slowMoving.single().productName)
+        assertTrue(s.byType.any { it.type == "REDUCE" && it.count == 4L })
+    }
+
+    @Test
     fun dashboardReportsNotifications() {
         val d = decode("dashboard", Dashboard.serializer())
         assertTrue(d.activeProducts >= 2)

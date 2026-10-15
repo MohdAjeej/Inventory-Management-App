@@ -1,7 +1,10 @@
 package com.b2binventory.app.ui.navigation
 
 import com.b2binventory.app.ui.common.Text
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.unit.dp
+import com.b2binventory.app.ui.common.WidthClass
+import com.b2binventory.app.ui.common.rememberWidthClass
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -43,7 +46,6 @@ import com.b2binventory.app.ui.settings.AppearanceScreen
 import com.b2binventory.app.ui.settings.BackupScreen
 import com.b2binventory.app.ui.sync.OfflineBanner
 import com.b2binventory.app.ui.sync.PendingSyncScreen
-import androidx.compose.foundation.layout.Column
 import com.b2binventory.app.ui.settings.BusinessSettingsScreen
 import com.b2binventory.app.ui.settings.MoreScreen
 import com.b2binventory.app.ui.settings.ProfileScreen
@@ -84,18 +86,23 @@ fun InventoryNavHost() {
     }
 
     CompositionLocalProvider(LocalMe provides session?.me) {
+        // Phones use a bottom bar on the main tabs; tablets keep a navigation rail beside every signed-in screen.
+        val wide = rememberWidthClass() != WidthClass.COMPACT
+        val signedIn = session != null && currentRoute != null && currentRoute !in authRoutes
         Scaffold(
             bottomBar = {
-                val topLevel = currentRoute in Routes.topLevel
+                val bottomTabs = !wide && currentRoute in Routes.topLevel
                 Column {
-                    if (session != null && currentRoute !in authRoutes && currentRoute != Routes.PENDING_SYNC) {
-                        OfflineBanner(onOpenPending = { nav.navigate(Routes.PENDING_SYNC) }, padNavigationBar = !topLevel)
+                    if (signedIn && currentRoute != Routes.PENDING_SYNC) {
+                        OfflineBanner(onOpenPending = { nav.navigate(Routes.PENDING_SYNC) }, padNavigationBar = !bottomTabs)
                     }
-                    if (topLevel) BottomBar(nav, currentRoute)
+                    if (bottomTabs) BottomBar(nav, currentRoute)
                 }
             },
         ) { padding ->
-            NavHost(nav, startDestination = Routes.SPLASH, modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
+          Row(Modifier.padding(bottom = padding.calculateBottomPadding())) {
+            if (wide && signedIn) SideRail(nav, currentRoute)
+            NavHost(nav, startDestination = Routes.SPLASH, modifier = Modifier.weight(1f)) {
                 composable(Routes.SPLASH) {
                     LaunchedEffect(Unit) {
                         val target = if (container.sessionStore.current != null) Routes.HOME else Routes.LOGIN
@@ -300,6 +307,7 @@ fun InventoryNavHost() {
                     )
                 }
             }
+          }
         }
     }
 }
@@ -309,6 +317,38 @@ private fun NavHostController.navigateTab(route: String) {
         popUpTo(graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true
         restoreState = true
+    }
+}
+
+private fun NavHostController.openTab(tab: Tab, currentRoute: String?) {
+    if (currentRoute != tab.route) {
+        navigate(tab.navRoute) {
+            popUpTo(Routes.HOME) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+}
+
+@Composable
+private fun visibleTabs(): List<Tab> {
+    val me = LocalMe.current
+    return tabs.filter { t -> t.permissions.isEmpty() || t.permissions.any { me?.can(it) == true } }
+}
+
+@Composable
+private fun SideRail(nav: NavHostController, currentRoute: String?) {
+    NavigationRail(containerColor = MaterialTheme.colorScheme.surface) {
+        Spacer(Modifier.height(12.dp))
+        visibleTabs().forEach { tab ->
+            NavigationRailItem(
+                selected = currentRoute == tab.route,
+                onClick = { nav.openTab(tab, currentRoute) },
+                icon = { Icon(tab.icon, contentDescription = null) },
+                label = { Text(tab.label) },
+                alwaysShowLabel = true,
+            )
+        }
     }
 }
 

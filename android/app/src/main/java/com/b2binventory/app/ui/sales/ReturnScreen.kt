@@ -142,7 +142,7 @@ fun ReturnScreen(onBack: () -> Unit, onDone: () -> Unit) {
                 s.items.forEach { item ->
                     val max = item.quantity - item.returnedQuantity
                     val line = lines[item.id] ?: ReturnLine()
-                    ElevatedCard(Modifier.fillMaxWidth()) {
+                    AppCard {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(item.productName, fontWeight = FontWeight.SemiBold)
                             Text("Sold ${Fmt.qty(item.quantity)} · already returned ${Fmt.qty(item.returnedQuantity)} · can return ${Fmt.qty(max)} ${item.unitCode}", style = MaterialTheme.typography.bodySmall)

@@ -1,6 +1,7 @@
 package com.b2binventory;
 
 import com.b2binventory.support.IntegrationTest;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -147,9 +148,53 @@ class StockTest extends IntegrationTest {
         assertThat(post(admin, "/api/notifications/read-all", null).status()).isEqualTo(204);
         assertThat(get(admin, "/api/notifications/unread-count").get("count").asInt()).isZero();
 
+        // Most-stocked lists products with stock, largest first; Milk (now 0) is left out.
+        post(admin, "/api/products", Map.of("name", "Bread", "openingStock", Map.of("quantity", 20)));
+        post(admin, "/api/products", Map.of("name", "Eggs", "openingStock", Map.of("quantity", 30)));
+
         Response dash = get(admin, "/api/dashboard");
         assertThat(dash.get("outOfStockCount").asInt()).isEqualTo(1);
         assertThat(dash.get("recentMovements").size()).isGreaterThanOrEqualTo(4);
+        JsonNode top = dash.get("mostStocked");
+        assertThat(top.size()).isEqualTo(2);
+        assertThat(top.get(0).get("productName").asText()).isEqualTo("Eggs");
+        for (int i = 1; i < top.size(); i++) {
+            assertThat(top.get(i - 1).get("available").asDouble()).isGreaterThanOrEqualTo(top.get(i).get("available").asDouble());
+        }
+        top.forEach(row -> assertThat(row.get("available").asDouble()).isPositive());
+    }
+
+    @Test
+    void movementSummaryRanksFastAndSlowMovers() {
+        Session admin = registerBusiness("Movers Co");
+        long fast = defaultVariant(post(admin, "/api/products", Map.of("name", "Cement",
+                "openingStock", Map.of("quantity", 100))).body());
+        long some = defaultVariant(post(admin, "/api/products", Map.of("name", "Sand",
+                "openingStock", Map.of("quantity", 50))).body());
+        post(admin, "/api/products", Map.of("name", "Tiles", "openingStock", Map.of("quantity", 40)));
+
+        assertThat(post(admin, "/api/stock/operations", op("REDUCE", fast, 30)).status()).isEqualTo(200);
+        assertThat(post(admin, "/api/stock/operations", op("REDUCE", fast, 20)).status()).isEqualTo(200);
+        assertThat(post(admin, "/api/stock/operations", op("REDUCE", some, 5)).status()).isEqualTo(200);
+        assertThat(post(admin, "/api/stock/operations", op("ADD", some, 10)).status()).isEqualTo(200);
+
+        Response s = get(admin, "/api/reports/movement-summary");
+        assertThat(s.status()).isEqualTo(200);
+        assertThat(s.get("totalOut").asDouble()).isEqualTo(55.0);
+        assertThat(s.get("totalIn").asDouble()).isEqualTo(200.0); // 190 opening + 10 added
+        assertThat(s.get("movementCount").asInt()).isEqualTo(7);
+        List<String> reduce = new ArrayList<>();
+        s.get("byType").forEach(t -> { if (t.get("type").asText().equals("REDUCE")) reduce.add(t.get("count").asText()); });
+        assertThat(reduce).containsExactly("3");
+        assertThat(s.get("fastMoving").get(0).get("productName").asText()).isEqualTo("Cement");
+        assertThat(s.get("fastMoving").get(0).get("quantityOut").asDouble()).isEqualTo(50.0);
+        assertThat(s.get("fastMoving").get(1).get("productName").asText()).isEqualTo("Sand");
+        assertThat(s.get("slowMoving").get(0).get("productName").asText()).isEqualTo("Tiles");
+
+        // A period with no movements has nothing fast-moving.
+        Response old = get(admin, "/api/reports/movement-summary?from=2020-01-01&to=2020-01-31");
+        assertThat(old.get("movementCount").asInt()).isZero();
+        assertThat(old.get("fastMoving").size()).isZero();
     }
 
     @Test

@@ -4,7 +4,10 @@ import com.b2binventory.app.ui.common.Text
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -35,6 +38,16 @@ enum class OpType(val label: String, val permission: String, val needsDamagedRes
     DAMAGE("Mark damaged", "STOCK_ADJUST", true, advanced = true),
     RESERVE("Reserve", "STOCK_ADJUST", true, advanced = true),
     RELEASE("Release reservation", "STOCK_ADJUST", true, advanced = true),
+}
+
+fun OpType.icon(): ImageVector = when (this) {
+    OpType.ADD -> Icons.Default.AddCircleOutline
+    OpType.REDUCE -> Icons.Default.RemoveCircleOutline
+    OpType.ADJUST -> Icons.Default.Tune
+    OpType.TRANSFER -> Icons.Default.SwapHoriz
+    OpType.DAMAGE -> Icons.Default.BrokenImage
+    OpType.RESERVE -> Icons.Default.Lock
+    OpType.RELEASE -> Icons.Default.LockOpen
 }
 
 private val reasons = mapOf(
@@ -277,31 +290,42 @@ fun StockOperationScreen(onBack: () -> Unit, onDone: () -> Unit) {
                     LinearProgressIndicator(Modifier.fillMaxWidth())
                 } else {
                     Text("Choose a product", style = MaterialTheme.typography.titleMedium)
-                    OutlinedTextField(search, vm::searchProducts, Modifier.fillMaxWidth(), singleLine = true,
-                        leadingIcon = { Icon(Icons.Default.Search, null) },
-                        placeholder = { Text("Search name, SKU or barcode") }, isError = e["product"] != null)
-                    product.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    SearchField(search, vm::searchProducts, "Search name, SKU or barcode", isError = e["product"] != null)
+                    product.error?.let { MessageBanner(BannerKind.ERROR, it) }
                     results.forEach { r ->
-                        ListItem(
-                            headlineContent = { Text(r.name) },
-                            supportingContent = { Text(listOfNotNull(r.sku, r.categoryName).joinToString(" · ").ifEmpty { r.unitCode }) },
-                            trailingContent = { Text("${Fmt.qty(r.stock.available)} ${r.unitCode}") },
-                            modifier = Modifier.clickable { vm.selectProduct(r.id) },
-                        )
+                        AppCard(onClick = { vm.selectProduct(r.id) }) {
+                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                IconBadge(Icons.Default.Inventory2, MaterialTheme.colorScheme.primary, 40.dp)
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(r.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(listOfNotNull(r.sku, r.categoryName).joinToString(" · ").ifEmpty { r.unitCode },
+                                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("${Fmt.qty(r.stock.available)} ${r.unitCode}", style = MaterialTheme.typography.titleSmall,
+                                        color = statusColor(r.status))
+                                    StatusChip(r.status)
+                                }
+                            }
+                        }
                     }
-                    if (results.isEmpty()) Text("No products found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (results.isEmpty()) EmptyState("No products found", icon = Icons.Default.SearchOff)
                 }
                 return@FormColumn
             }
 
-            SectionCard {
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            AppCard {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    IconBadge(Icons.Default.Inventory2, MaterialTheme.colorScheme.primary, 44.dp)
+                    Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(p.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(p.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Text("${Fmt.qty(p.stock.available)} ${p.baseUnit.code} available in total",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    TextButton(onClick = vm::clearProduct) { Text("Change") }
+                    OutlinedButton(onClick = vm::clearProduct, contentPadding = PaddingValues(horizontal = 12.dp)) { Text("Change") }
                 }
             }
             if (p.archived) {
@@ -313,10 +337,12 @@ fun StockOperationScreen(onBack: () -> Unit, onDone: () -> Unit) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 types.filter { !it.advanced || showAdvanced || form.type == it }.forEach { t ->
                     FilterChip(selected = form.type == t, onClick = { vm.update { it.copy(type = t, reason = "", batchId = null) } },
-                        label = { Text(t.label) })
+                        label = { Text(t.label) },
+                        leadingIcon = { Icon(t.icon(), null, Modifier.size(18.dp)) })
                 }
                 if (!showAdvanced && types.any { it.advanced }) {
-                    AssistChip(onClick = { showAdvanced = true }, label = { Text("More options") })
+                    AssistChip(onClick = { showAdvanced = true }, label = { Text("More options") },
+                        leadingIcon = { Icon(Icons.Default.MoreHoriz, null, Modifier.size(18.dp)) })
                 }
             }
 
@@ -339,10 +365,17 @@ fun StockOperationScreen(onBack: () -> Unit, onDone: () -> Unit) {
             val available = here.sumOf { it.available }
             val reserved = here.sumOf { it.reserved }
             val damaged = here.sumOf { it.damaged }
-            Text("In this warehouse: ${Fmt.qty(onHand)} on hand · ${Fmt.qty(available)} available" +
-                (if (reserved > 0) " · ${Fmt.qty(reserved)} reserved" else "") +
-                (if (damaged > 0) " · ${Fmt.qty(damaged)} damaged" else ""),
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Warehouse, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(8.dp))
+                    Text("In this warehouse: ${Fmt.qty(onHand)} on hand · ${Fmt.qty(available)} available" +
+                        (if (reserved > 0) " · ${Fmt.qty(reserved)} reserved" else "") +
+                        (if (damaged > 0) " · ${Fmt.qty(damaged)} damaged" else ""),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
 
             val batchTracked = p.trackBatches && settings.trackBatches
             if (batchTracked && form.type == OpType.ADD) {
@@ -374,12 +407,9 @@ fun StockOperationScreen(onBack: () -> Unit, onDone: () -> Unit) {
                 }
                 val tooMuch = form.type in setOf(OpType.REDUCE, OpType.TRANSFER) && !form.fromDamaged &&
                     typedQty > available && !settings.allowNegativeStock
-                Text(
-                    if (tooMuch) "Not enough stock: only ${Fmt.qty(available)} ${p.baseUnit.code} available here"
-                    else "On hand here: ${Fmt.qty(onHand)} → ${Fmt.qty(resulting)} ${p.baseUnit.code}",
-                    color = if (tooMuch) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium,
-                )
+                StockChangePreview(onHand, resulting, p.baseUnit.code,
+                    warning = if (tooMuch) "Not enough stock: only ${Fmt.qty(available)} ${p.baseUnit.code} available here" else null,
+                    currentLabel = "On hand here")
             }
             if (form.type == OpType.REDUCE && settings.trackDamagedReserved && damaged > 0) {
                 SwitchRow("Write off damaged stock", form.fromDamaged, { v -> vm.update { it.copy(fromDamaged = v) } },
@@ -392,13 +422,14 @@ fun StockOperationScreen(onBack: () -> Unit, onDone: () -> Unit) {
                     error = e["serials"], supporting = "One per line (${form.serialList().size} entered)")
             }
 
-            DropdownField("Reason", reasons[form.type].orEmpty(), form.reason.takeIf { it.isNotBlank() },
-                { r -> vm.update { it.copy(reason = r) } }, { it }, error = e["reason"], required = form.type == OpType.ADJUST)
+            ChoiceChips("Reason", reasons[form.type].orEmpty(), form.reason.takeIf { it.isNotBlank() },
+                { r -> vm.update { it.copy(reason = if (it.reason == r) "" else r) } }, error = e["reason"],
+                required = form.type == OpType.ADJUST)
             if (form.reason == "Other" || (form.reason.isBlank() && form.type == OpType.ADJUST)) {
                 FormField(form.customReason, { v -> vm.update { it.copy(customReason = v) } }, "Describe the reason", error = e["reason"])
             }
             FormField(form.notes, { v -> vm.update { it.copy(notes = v) } }, "Notes", singleLine = false, minLines = 2)
-            PrimaryButton("Review and confirm", vm::review, loading = state.submitting)
+            PrimaryButton("Review and confirm", vm::review, loading = state.submitting, icon = Icons.Default.Checklist)
 
             if (state.reviewing) {
                 val qty = form.quantity.toDoubleOrNull() ?: 0.0
@@ -409,22 +440,24 @@ fun StockOperationScreen(onBack: () -> Unit, onDone: () -> Unit) {
                     else -> onHand
                 }
                 val warehouseName = warehouses.firstOrNull { it.id == form.warehouseId }?.name ?: ""
-                val summary = buildString {
-                    append("${form.type.label}: ${Fmt.qty(qty)} ${p.baseUnit.code} of ${p.name}")
-                    activeVariants.firstOrNull { it.id == form.variantId }?.takeIf { activeVariants.size > 1 }?.let { append(" (${it.name})") }
-                    append("\n")
+                val variant = activeVariants.firstOrNull { it.id == form.variantId }?.takeIf { activeVariants.size > 1 }
+                ConfirmDialog("Confirm stock update", "Confirm", destructive = false, onConfirm = vm::submit,
+                    onDismiss = vm::cancelReview, icon = form.type.icon()) {
+                    InfoRow("Action", form.type.label, emphasis = true)
+                    InfoRow("Product", p.name + (variant?.let { " (${it.name})" } ?: ""))
+                    InfoRow("Quantity", "${Fmt.qty(qty)} ${p.baseUnit.code}", emphasis = true)
                     if (form.type == OpType.TRANSFER) {
-                        append("From $warehouseName to ${warehouses.firstOrNull { it.id == form.toWarehouseId }?.name}\n")
+                        InfoRow("From", warehouseName)
+                        InfoRow("To", warehouses.firstOrNull { it.id == form.toWarehouseId }?.name ?: "")
                     } else {
-                        append("Warehouse: $warehouseName\n")
+                        InfoRow("Warehouse", warehouseName)
                     }
+                    form.reasonText().takeIf { it.isNotBlank() }?.let { InfoRow("Reason", it) }
+                    InfoRow("Recorded as", me?.fullName ?: "")
                     if (form.type in setOf(OpType.ADD, OpType.REDUCE, OpType.ADJUST, OpType.TRANSFER)) {
-                        append("On hand here: ${Fmt.qty(onHand)} → ${Fmt.qty(after)}\n")
+                        StockChangePreview(onHand, after, p.baseUnit.code, currentLabel = "On hand here")
                     }
-                    form.reasonText().takeIf { it.isNotBlank() }?.let { append("Reason: $it\n") }
-                    append("Recorded as: ${me?.fullName}")
                 }
-                ConfirmDialog("Confirm stock update", summary, "Confirm", onConfirm = vm::submit, onDismiss = vm::cancelReview)
             }
         }
     }

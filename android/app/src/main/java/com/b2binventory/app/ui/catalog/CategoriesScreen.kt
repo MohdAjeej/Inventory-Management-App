@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -71,7 +72,26 @@ class CategoriesViewModel(private val api: ApiService) : ViewModel() {
     fun clearErrors() {
         _errors.value = emptyMap()
     }
+
+    /** Creates a suggested top-level category with one tap. */
+    fun createSuggested(name: String) {
+        viewModelScope.launch {
+            when (val r = apiCall { api.createCategory(CategoryRequest(name, null, null)) }) {
+                is ApiResult.Ok -> {
+                    _messages.emit("Category added")
+                    load()
+                }
+                is ApiResult.Err -> _messages.emit(r.message)
+            }
+        }
+    }
 }
+
+/** One-tap starting points; only names the business does not already have are offered. */
+private val suggestedCategories = listOf(
+    "Ply", "Mica", "Hardware", "Door", "Sanitary", "Paint", "Electrical", "Tools",
+    "Raw materials", "Finished goods", "Spare parts", "Packaging", "Consumables", "Accessories",
+)
 
 private data class Editing(val category: CategoryNode?, val parentId: Long?)
 
@@ -101,16 +121,24 @@ fun CategoriesScreen(onBack: () -> Unit, onAttributes: (Long?, String?) -> Unit)
     ) { padding ->
         Box(Modifier.padding(padding)) {
             LoadableContent(state, vm::load) { list ->
-                LazyColumn(contentPadding = PaddingValues(bottom = 88.dp)) {
+                val existing = list.map { it.name.trim().lowercase() }.toSet()
+                val suggestions = suggestedCategories.filter { it.lowercase() !in existing && tr(it).lowercase() !in existing }
+                ResponsiveContent {
+                LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     item {
-                        ListItem(
-                            headlineContent = { Text("Fields for all products") },
-                            supportingContent = { Text("Custom fields that apply whatever the category") },
-                            leadingContent = { Icon(Icons.Default.Tune, null) },
-                            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) },
-                            modifier = Modifier.clickableRow { onAttributes(null, null) },
-                        )
-                        HorizontalDivider()
+                        AppCard(onClick = { onAttributes(null, null) }) {
+                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                IconBadge(Icons.Default.Tune, MaterialTheme.colorScheme.tertiary, 40.dp)
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text("Fields for all products", style = MaterialTheme.typography.titleSmall)
+                                    Text("Custom fields that apply whatever the category", style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline)
+                            }
+                        }
                     }
                     if (list.isEmpty()) {
                         item {
@@ -118,37 +146,49 @@ fun CategoriesScreen(onBack: () -> Unit, onAttributes: (Long?, String?) -> Unit)
                                 Icons.Default.Category)
                         }
                     }
+                    if (canManage && suggestions.isNotEmpty() && !showArchived && list.size < 8) {
+                        item { SuggestedCategories(suggestions, vm::createSuggested) }
+                    }
+                    if (list.isNotEmpty()) {
+                        item { SectionHeader("${list.size} categories") }
+                    }
                     items(list, key = { it.id }) { c ->
                         var menu by remember { mutableStateOf(false) }
-                        ListItem(
-                            headlineContent = { Text(c.name + if (c.archived) " (archived)" else "") },
-                            supportingContent = { Text("${c.productCount} products" + (c.description?.let { " · $it" } ?: "")) },
-                            leadingContent = {
-                                Row {
-                                    Spacer(Modifier.width((c.depth * 20).dp))
-                                    Icon(if (c.depth == 0) Icons.Default.Folder else Icons.Default.SubdirectoryArrowRight, null)
+                        AppCard(Modifier.padding(start = (c.depth * 20).dp), onClick = { onAttributes(c.id, c.name) }) {
+                            Row(Modifier.padding(start = 12.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                IconBadge(if (c.depth == 0) Icons.Default.Folder else Icons.Default.SubdirectoryArrowRight,
+                                    if (c.archived) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary, 40.dp)
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(c.name, style = MaterialTheme.typography.titleSmall)
+                                    Text("${c.productCount} products" + (c.description?.let { " · $it" } ?: ""),
+                                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2)
+                                    if (c.archived) Pill("Archived", MaterialTheme.colorScheme.outline, Icons.Default.Archive)
                                 }
-                            },
-                            trailingContent = {
                                 Box {
-                                    IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, "Actions") }
+                                    IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, tr("Actions")) }
                                     DropdownMenu(menu, { menu = false }) {
-                                        DropdownMenuItem({ Text("Custom fields") }, { menu = false; onAttributes(c.id, c.name) })
+                                        DropdownMenuItem({ Text("Custom fields") }, { menu = false; onAttributes(c.id, c.name) },
+                                            leadingIcon = { Icon(Icons.Default.Tune, null) })
                                         if (canManage && !c.archived) {
-                                            DropdownMenuItem({ Text("Add subcategory") }, { menu = false; editing = Editing(null, c.id) })
-                                            DropdownMenuItem({ Text("Edit") }, { menu = false; editing = Editing(c, c.parentId) })
-                                            DropdownMenuItem({ Text("Archive") }, { menu = false; archiveTarget = c })
+                                            DropdownMenuItem({ Text("Add subcategory") }, { menu = false; editing = Editing(null, c.id) },
+                                                leadingIcon = { Icon(Icons.Default.CreateNewFolder, null) })
+                                            DropdownMenuItem({ Text("Edit") }, { menu = false; editing = Editing(c, c.parentId) },
+                                                leadingIcon = { Icon(Icons.Default.Edit, null) })
+                                            DropdownMenuItem({ Text("Archive") }, { menu = false; archiveTarget = c },
+                                                leadingIcon = { Icon(Icons.Default.Archive, null) })
                                         }
                                         if (canManage && c.archived) {
-                                            DropdownMenuItem({ Text("Restore") }, { menu = false; vm.setArchived(c, false) })
+                                            DropdownMenuItem({ Text("Restore") }, { menu = false; vm.setArchived(c, false) },
+                                                leadingIcon = { Icon(Icons.Default.Unarchive, null) })
                                         }
                                     }
                                 }
-                            },
-                            modifier = Modifier.clickableRow { onAttributes(c.id, c.name) },
-                        )
-                        HorizontalDivider()
+                            }
+                        }
                     }
+                }
                 }
             }
         }
@@ -191,6 +231,22 @@ private fun CategoryDialog(
         confirmButton = { TextButton(onClick = { onSave(name, description, parent) }) { Text("Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SuggestedCategories(names: List<String>, onAdd: (String) -> Unit) {
+    var added by remember { mutableStateOf(setOf<String>()) }
+    SectionCard("Suggested categories") {
+        Text("Tap to add. You can rename or remove them later.", style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            names.filter { it !in added }.forEach { name ->
+                AssistChip(onClick = { added = added + name; onAdd(tr(name)) }, label = { Text(name) },
+                    leadingIcon = { Icon(Icons.Default.Add, null, Modifier.size(18.dp)) })
+            }
+        }
+    }
 }
 
 fun Modifier.clickableRow(onClick: () -> Unit): Modifier =

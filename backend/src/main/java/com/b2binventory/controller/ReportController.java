@@ -85,6 +85,14 @@ public class ReportController {
                 Math.min(Math.max(size, 1), 500));
     }
 
+    @GetMapping("/reports/movement-summary")
+    @PreAuthorize("hasAuthority('REPORT_VIEW')")
+    public MovementSummary movementSummary(@RequestParam(required = false) Long warehouseId,
+                                           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return reports.movementSummary(warehouseId, start(from), end(to));
+    }
+
     /** report = inventory | low-stock | movements; format = csv | xlsx. */
     @GetMapping("/reports/{report}/export")
     @PreAuthorize("hasAuthority('REPORT_EXPORT')")

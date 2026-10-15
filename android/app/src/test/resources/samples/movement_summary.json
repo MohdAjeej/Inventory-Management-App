@@ -1,0 +1,56 @@
+{
+  "from": "2026-09-15T07:19:13.893262500Z",
+  "to": "2026-10-15T07:19:13.893262500Z",
+  "totalIn": 163.0,
+  "totalOut": 82.0,
+  "movementCount": 9,
+  "byType": [
+    {
+      "type": "OPENING",
+      "count": 4,
+      "quantity": 155.0
+    },
+    {
+      "type": "REDUCE",
+      "count": 4,
+      "quantity": -82.0
+    },
+    {
+      "type": "ADD",
+      "count": 1,
+      "quantity": 8.0
+    }
+  ],
+  "fastMoving": [
+    {
+      "productId": 43,
+      "productName": "Ply 18mm",
+      "unit": "pcs",
+      "quantityOut": 75.0,
+      "available": 25.0
+    },
+    {
+      "productId": 44,
+      "productName": "Mica sheet",
+      "unit": "pcs",
+      "quantityOut": 4.0,
+      "available": 36.0
+    },
+    {
+      "productId": 46,
+      "productName": "Wall paint 20L",
+      "unit": "pcs",
+      "quantityOut": 3.0,
+      "available": 0.0
+    }
+  ],
+  "slowMoving": [
+    {
+      "productId": 45,
+      "productName": "Flush door",
+      "unit": "pcs",
+      "quantityOut": 0,
+      "available": 20.0
+    }
+  ]
+}

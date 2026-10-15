@@ -48,6 +48,9 @@ class TenantIsolationTest extends IntegrationTest {
         assertThat(get(b, "/api/stock/movements").get("totalElements").asInt()).isZero();
         assertThat(get(b, "/api/stock/movements?productId=" + productId).get("totalElements").asInt()).isZero();
         assertThat(get(b, "/api/reports/inventory").get("totalElements").asInt()).isZero();
+        Response summary = get(b, "/api/reports/movement-summary");
+        assertThat(summary.get("movementCount").asInt()).isZero();
+        assertThat(summary.get("slowMoving").size()).isZero();
         assertThat(get(b, "/api/dashboard").get("activeProducts").asInt()).isZero();
         assertThat(get(b, "/api/warehouses").body()).hasSize(1);
 

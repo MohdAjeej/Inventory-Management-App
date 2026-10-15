@@ -58,7 +58,8 @@ public final class AuthDtos {
     public record InvitationPreview(String businessName, String email, Role role, boolean existingUser, Instant expiresAt) {
     }
 
-    public record MembershipSummary(Long membershipId, Long businessId, String businessName, Role role) {
+    public record MembershipSummary(Long membershipId, Long businessId, String businessName, Role role,
+                                    String businessType) {
     }
 
     public record MeResponse(
