@@ -1,0 +1,49 @@
+{
+ "content": [
+  {
+   "productId": 6,
+   "variantId": 6,
+   "productName": "Glucometer",
+   "variantName": "Glucometer",
+   "unit": "pcs",
+   "onHand": 3.0,
+   "reserved": 0.0,
+   "damaged": 1.0,
+   "available": 2.0,
+   "minStock": 5,
+   "status": "LOW_STOCK"
+  },
+  {
+   "productId": 5,
+   "variantId": 5,
+   "productName": "Hand sanitizer 100ml",
+   "variantName": "Hand sanitizer 100ml",
+   "unit": "pcs",
+   "onHand": 0.0,
+   "reserved": 0.0,
+   "damaged": 0.0,
+   "available": 0.0,
+   "minStock": 5,
+   "status": "OUT_OF_STOCK"
+  },
+  {
+   "productId": 4,
+   "variantId": 4,
+   "productName": "Paracetamol 500",
+   "variantName": "Paracetamol 500",
+   "sku": "PCM-500",
+   "category": "Tablets",
+   "unit": "pcs",
+   "onHand": 11.0,
+   "reserved": 0.0,
+   "damaged": 0.0,
+   "available": 11.0,
+   "minStock": 10,
+   "status": "IN_STOCK"
+  }
+ ],
+ "page": 0,
+ "size": 50,
+ "totalElements": 3,
+ "totalPages": 1
+}

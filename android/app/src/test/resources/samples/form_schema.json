@@ -1,0 +1,47 @@
+{
+ "categoryId": 4,
+ "fields": [
+  {
+   "id": 4,
+   "key": "strength",
+   "label": "Strength",
+   "fieldType": "TEXT",
+   "required": true,
+   "options": [],
+   "sortOrder": 0,
+   "categoryId": 3,
+   "categoryName": "Medicines",
+   "archived": false
+  },
+  {
+   "id": 5,
+   "key": "form",
+   "label": "Dosage form",
+   "fieldType": "DROPDOWN",
+   "required": true,
+   "options": [
+    "Tablet",
+    "Capsule",
+    "Syrup"
+   ],
+   "sortOrder": 0,
+   "categoryId": 4,
+   "categoryName": "Tablets",
+   "archived": false
+  },
+  {
+   "id": 6,
+   "key": "otc",
+   "label": "Over the counter",
+   "fieldType": "BOOLEAN",
+   "required": false,
+   "options": [],
+   "sortOrder": 0,
+   "archived": false
+  }
+ ],
+ "trackBatches": true,
+ "trackExpiry": true,
+ "trackSerials": true,
+ "trackDamagedReserved": true
+}

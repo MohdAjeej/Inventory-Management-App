@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_retry">फिर से कोशिश करें</string>
+    <string name="appearance_title">रूप और भाषा</string>
+    <string name="appearance_theme">थीम</string>
+    <string name="appearance_theme_system">फ़ोन की सेटिंग के अनुसार</string>
+    <string name="appearance_theme_light">हल्की</string>
+    <string name="appearance_theme_dark">गहरी</string>
+    <string name="appearance_language">भाषा</string>
+    <string name="appearance_language_system">फ़ोन की भाषा</string>
+    <string name="appearance_language_note">सर्वर से भेजे गए संदेश, जैसे कुछ त्रुटि संदेश, अंग्रेज़ी में दिख सकते हैं।</string>
+    <string name="backup_title">बैकअप और पुनर्स्थापना</string>
+    <string name="backup_needs_connection">बैकअप और पुनर्स्थापना के लिए सर्वर से कनेक्शन ज़रूरी है।</string>
+    <string name="backup_create_title">बैकअप बनाएँ</string>
+    <string name="backup_create_body">इस व्यवसाय का सारा डेटा — उत्पाद, स्टॉक, बिक्री, खरीद, ग्राहक और आपूर्तिकर्ता — डाउनलोड में एक फ़ाइल में सहेजता है। इसे Google Drive जैसी सुरक्षित जगह रखें।</string>
+    <string name="backup_create_action">बैकअप बनाएँ</string>
+    <string name="backup_saved">%1$s डाउनलोड में सहेजा गया</string>
+    <string name="backup_restore_title">बैकअप से पुनर्स्थापित करें</string>
+    <string name="backup_restore_body">बैकअप फ़ाइल से एक नया व्यवसाय बनाता है। आपका मौजूदा व्यवसाय नहीं बदलता। टीम सदस्य पुनर्स्थापित नहीं होते; आप इसके व्यवस्थापक होंगे।</string>
+    <string name="backup_restore_action">बैकअप फ़ाइल चुनें</string>
+    <string name="backup_not_a_backup">यह फ़ाइल इन्वेंटरी बैकअप नहीं है।</string>
+    <string name="backup_unknown_business">बैकअप</string>
+    <string name="backup_restore_confirm_title">बैकअप पुनर्स्थापित करें?</string>
+    <string name="backup_restore_confirm_body">“%1$s” से एक नया व्यवसाय बनेगा और आप उस पर चले जाएँगे। आपका मौजूदा व्यवसाय नहीं बदलेगा।</string>
+    <string name="backup_restore_confirm_action">पुनर्स्थापित करें</string>
+    <string name="offline_saved">ऑफ़लाइन सहेजा गया। ऑनलाइन होने पर भेजा जाएगा।</string>
+    <string name="offline_banner">ऑफ़लाइन — सहेजा गया डेटा दिख रहा है</string>
+    <string name="pending_view">देखें</string>
+    <string name="pending_title">सिंक बाकी</string>
+    <string name="pending_sync_now">अभी सिंक करें</string>
+    <string name="pending_empty_title">सब कुछ सिंक हो गया</string>
+    <string name="pending_empty_body">ऑफ़लाइन की गई बिक्री, खरीद और स्टॉक बदलाव सर्वर तक पहुँचने तक यहाँ दिखते हैं।</string>
+    <string name="pending_explainer">ये बदलाव इस फ़ोन पर सहेजे गए हैं और सर्वर उपलब्ध होने पर अपने-आप भेजे जाते हैं। अगर सर्वर किसी को अस्वीकार करता है (जैसे अब पर्याप्त स्टॉक नहीं), तो वह यहीं रहता है ताकि आप फिर से कोशिश करें या उसे हटा दें।</string>
+    <string name="pending_refused">स्वीकार नहीं हुआ: %1$s</string>
+    <string name="pending_discard">हटाएँ</string>
+    <string name="pending_discard_title">यह बदलाव हटाएँ?</string>
+    <string name="pending_discard_body">%1$s · %2$s इस फ़ोन से हटा दिया जाएगा और कभी नहीं भेजा जाएगा।</string>
+    <string name="pending_type_sale">बिक्री</string>
+    <string name="pending_type_purchase">खरीद</string>
+    <string name="pending_type_payment">भुगतान</string>
+    <string name="pending_type_stock">स्टॉक बदलाव</string>
+    <string name="pending_type_transfer">स्टॉक स्थानांतरण</string>
+    <plurals name="pending_count">
+        <item quantity="one">%d बदलाव सिंक के लिए बाकी</item>
+        <item quantity="other">%d बदलाव सिंक के लिए बाकी</item>
+    </plurals>
+    <plurals name="pending_failed_count">
+        <item quantity="one">%d पर ध्यान दें</item>
+        <item quantity="other">%d पर ध्यान दें</item>
+    </plurals>
+    <plurals name="logout_pending_warning">
+        <item quantity="one">ऑफ़लाइन किया गया %d बदलाव अभी नहीं भेजा गया है और साइन आउट करने पर खो जाएगा।</item>
+        <item quantity="other">ऑफ़लाइन किए गए %d बदलाव अभी नहीं भेजे गए हैं और साइन आउट करने पर खो जाएँगे।</item>
+    </plurals>
+</resources>

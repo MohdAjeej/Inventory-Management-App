@@ -1,0 +1,19 @@
+{
+ "content": [
+  {
+   "id": 2,
+   "warehouseId": 4,
+   "warehouseName": "Main Warehouse",
+   "status": "RECONCILED",
+   "createdBy": "Asha Admin",
+   "createdAt": "2026-10-14T11:29:17.622663Z",
+   "reconciledAt": "2026-10-14T11:29:17.964753Z",
+   "lineCount": 4,
+   "countedLines": 4
+  }
+ ],
+ "page": 0,
+ "size": 20,
+ "totalElements": 1,
+ "totalPages": 1
+}

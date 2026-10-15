@@ -1,0 +1,34 @@
+{
+ "userId": 4,
+ "fullName": "Asha Admin",
+ "email": "asha-60725f@example.com",
+ "membershipId": 4,
+ "businessId": 3,
+ "businessName": "Green Leaf Pharmacy",
+ "role": "ADMIN",
+ "permissions": [
+  "PRODUCT_VIEW",
+  "PRODUCT_CREATE",
+  "PRODUCT_EDIT",
+  "PRODUCT_ARCHIVE",
+  "STOCK_ADD",
+  "STOCK_REDUCE",
+  "STOCK_ADJUST",
+  "STOCK_TRANSFER",
+  "STOCK_COUNT",
+  "REPORT_VIEW",
+  "REPORT_EXPORT",
+  "CATEGORY_MANAGE",
+  "WAREHOUSE_MANAGE",
+  "EMPLOYEE_MANAGE",
+  "BUSINESS_SETTINGS"
+ ],
+ "memberships": [
+  {
+   "membershipId": 4,
+   "businessId": 3,
+   "businessName": "Green Leaf Pharmacy",
+   "role": "ADMIN"
+  }
+ ]
+}

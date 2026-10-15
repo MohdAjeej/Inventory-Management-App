@@ -1,0 +1,14 @@
+[
+ {
+  "id": 3,
+  "lotNumber": "L1",
+  "expiryDate": "2027-03-31",
+  "onHand": 40.0
+ },
+ {
+  "id": 4,
+  "lotNumber": "L2",
+  "expiryDate": "2027-09-30",
+  "onHand": 20.0
+ }
+]

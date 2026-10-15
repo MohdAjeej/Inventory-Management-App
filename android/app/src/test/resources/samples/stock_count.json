@@ -1,0 +1,64 @@
+{
+ "summary": {
+  "id": 2,
+  "warehouseId": 4,
+  "warehouseName": "Main Warehouse",
+  "status": "OPEN",
+  "createdBy": "Asha Admin",
+  "createdAt": "2026-10-14T11:29:17.622663Z",
+  "lineCount": 4,
+  "countedLines": 4
+ },
+ "lines": [
+  {
+   "id": 5,
+   "variantId": 6,
+   "productId": 6,
+   "productName": "Glucometer",
+   "variantName": "Glucometer",
+   "unitCode": "pcs",
+   "expectedQty": 2.0,
+   "countedQty": 3.0,
+   "difference": 1.0
+  },
+  {
+   "id": 6,
+   "variantId": 5,
+   "productId": 5,
+   "productName": "Hand sanitizer 100ml",
+   "variantName": "Hand sanitizer 100ml",
+   "unitCode": "pcs",
+   "expectedQty": 0.0,
+   "countedQty": 0,
+   "difference": 0.0
+  },
+  {
+   "id": 7,
+   "variantId": 4,
+   "productId": 4,
+   "productName": "Paracetamol 500",
+   "variantName": "Paracetamol 500",
+   "sku": "PCM-500",
+   "unitCode": "pcs",
+   "batchId": 3,
+   "lotNumber": "L1",
+   "expectedQty": 0.0,
+   "countedQty": 0.0,
+   "difference": 0.0
+  },
+  {
+   "id": 8,
+   "variantId": 4,
+   "productId": 4,
+   "productName": "Paracetamol 500",
+   "variantName": "Paracetamol 500",
+   "sku": "PCM-500",
+   "unitCode": "pcs",
+   "batchId": 4,
+   "lotNumber": "L2",
+   "expectedQty": 0.0,
+   "countedQty": 0.0,
+   "difference": 0.0
+  }
+ ]
+}

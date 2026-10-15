@@ -1,0 +1,51 @@
+{
+ "content": [
+  {
+   "membershipId": 4,
+   "userId": 4,
+   "fullName": "Asha Admin",
+   "email": "asha-60725f@example.com",
+   "role": "ADMIN",
+   "status": "ACTIVE",
+   "permissions": [
+    "PRODUCT_VIEW",
+    "PRODUCT_CREATE",
+    "PRODUCT_EDIT",
+    "PRODUCT_ARCHIVE",
+    "STOCK_ADD",
+    "STOCK_REDUCE",
+    "STOCK_ADJUST",
+    "STOCK_TRANSFER",
+    "STOCK_COUNT",
+    "REPORT_VIEW",
+    "REPORT_EXPORT",
+    "CATEGORY_MANAGE",
+    "WAREHOUSE_MANAGE",
+    "EMPLOYEE_MANAGE",
+    "BUSINESS_SETTINGS"
+   ],
+   "overrides": {},
+   "joinedAt": "2026-10-14T11:29:14.448521Z"
+  },
+  {
+   "membershipId": 5,
+   "userId": 5,
+   "fullName": "Sam Staff",
+   "email": "sam-60725f@example.com",
+   "role": "STAFF",
+   "status": "ACTIVE",
+   "permissions": [
+    "PRODUCT_VIEW",
+    "STOCK_ADD",
+    "STOCK_REDUCE",
+    "STOCK_COUNT"
+   ],
+   "overrides": {},
+   "joinedAt": "2026-10-14T11:29:18.376189Z"
+  }
+ ],
+ "page": 0,
+ "size": 50,
+ "totalElements": 2,
+ "totalPages": 1
+}

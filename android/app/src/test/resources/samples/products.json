@@ -1,0 +1,43 @@
+{
+ "content": [
+  {
+   "id": 5,
+   "name": "Hand sanitizer 100ml",
+   "unitCode": "pcs",
+   "stock": {
+    "onHand": 0,
+    "reserved": 0,
+    "damaged": 0,
+    "available": 0
+   },
+   "effectiveMinStock": 5,
+   "status": "OUT_OF_STOCK",
+   "variantCount": 1,
+   "archived": false,
+   "updatedAt": "2026-10-14T11:29:15.809110Z"
+  },
+  {
+   "id": 4,
+   "name": "Paracetamol 500",
+   "categoryId": 4,
+   "categoryName": "Tablets",
+   "unitCode": "pcs",
+   "sku": "PCM-500",
+   "stock": {
+    "onHand": 10.0,
+    "reserved": 0.0,
+    "damaged": 0.0,
+    "available": 10.0
+   },
+   "effectiveMinStock": 10,
+   "status": "LOW_STOCK",
+   "variantCount": 1,
+   "archived": false,
+   "updatedAt": "2026-10-14T11:29:15.418158Z"
+  }
+ ],
+ "page": 0,
+ "size": 20,
+ "totalElements": 2,
+ "totalPages": 1
+}

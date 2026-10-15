@@ -1,19 +1,46 @@
 server:
-  port: 8082
+  port: ${SERVER_PORT:8082}
 
 spring:
+  config:
+    # Local development: values from the repo-root .env (KEY=value) are picked up when present.
+    import:
+      - optional:file:../.env[.properties]
+      - optional:file:.env[.properties]
   datasource:
-    url: jdbc:postgresql://localhost:5432/b2b_inventory
-    username: postgres
-    password: postgres
-
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/inventory_platform}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     open-in-view: false
     properties:
       hibernate:
-        format_sql: true
-
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   jackson:
     default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-minutes: ${JWT_ACCESS_MINUTES:60}
+    refresh-token-days: ${JWT_REFRESH_DAYS:30}
+  uploads:
+    dir: ${UPLOADS_DIR:uploads}
+  invitations:
+    valid-days: 7
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

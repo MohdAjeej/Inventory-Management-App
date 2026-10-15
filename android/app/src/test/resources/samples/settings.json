@@ -1,0 +1,9 @@
+{
+ "allowNegativeStock": false,
+ "defaultLowStockThreshold": 5,
+ "trackBatches": true,
+ "trackExpiry": true,
+ "trackSerials": true,
+ "trackDamagedReserved": true,
+ "notifyLowStock": true
+}

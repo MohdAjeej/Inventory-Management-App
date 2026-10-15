@@ -1,0 +1,18 @@
+[
+ {
+  "id": 3,
+  "serial": "G-001",
+  "status": "IN_STOCK",
+  "warehouseId": 4,
+  "warehouseName": "Main Warehouse",
+  "updatedAt": "2026-10-14T11:29:17.363350Z"
+ },
+ {
+  "id": 4,
+  "serial": "G-002",
+  "status": "IN_STOCK",
+  "warehouseId": 4,
+  "warehouseName": "Main Warehouse",
+  "updatedAt": "2026-10-14T11:29:17.363350Z"
+ }
+]

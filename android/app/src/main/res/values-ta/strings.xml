@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_retry">மீண்டும் முயற்சி செய்</string>
+    <string name="appearance_title">தோற்றம் மற்றும் மொழி</string>
+    <string name="appearance_theme">தீம்</string>
+    <string name="appearance_theme_system">தொலைபேசி அமைப்பைப் பின்பற்று</string>
+    <string name="appearance_theme_light">வெளிர்</string>
+    <string name="appearance_theme_dark">இருண்ட</string>
+    <string name="appearance_language">மொழி</string>
+    <string name="appearance_language_system">தொலைபேசி மொழி</string>
+    <string name="appearance_language_note">சேவையகம் அனுப்பும் செய்திகள், சில பிழைச் செய்திகள் போன்றவை, ஆங்கிலத்தில் தோன்றலாம்.</string>
+    <string name="backup_title">காப்புப்பிரதி மற்றும் மீட்டமைப்பு</string>
+    <string name="backup_needs_connection">காப்புப்பிரதி மற்றும் மீட்டமைப்புக்கு சேவையக இணைப்பு தேவை.</string>
+    <string name="backup_create_title">காப்புப்பிரதியை உருவாக்கு</string>
+    <string name="backup_create_body">இந்த வணிகத்தின் அனைத்து தரவையும் — பொருட்கள், இருப்பு, விற்பனை, கொள்முதல், வாடிக்கையாளர்கள் மற்றும் சப்ளையர்கள் — பதிவிறக்கங்களில் ஒரு கோப்பாகச் சேமிக்கிறது. Google Drive போன்ற பாதுகாப்பான இடத்தில் வைக்கவும்.</string>
+    <string name="backup_create_action">காப்புப்பிரதியை உருவாக்கு</string>
+    <string name="backup_saved">%1$s பதிவிறக்கங்களில் சேமிக்கப்பட்டது</string>
+    <string name="backup_restore_title">காப்புப்பிரதியிலிருந்து மீட்டமை</string>
+    <string name="backup_restore_body">காப்புப்பிரதி கோப்பிலிருந்து ஒரு புதிய வணிகத்தை உருவாக்குகிறது. உங்கள் தற்போதைய வணிகம் மாறாது. குழு உறுப்பினர்கள் மீட்டமைக்கப்பட மாட்டார்கள்; நீங்கள் அதன் நிர்வாகியாக இருப்பீர்கள்.</string>
+    <string name="backup_restore_action">காப்புப்பிரதி கோப்பைத் தேர்ந்தெடு</string>
+    <string name="backup_not_a_backup">இந்த கோப்பு சரக்கு காப்புப்பிரதி அல்ல.</string>
+    <string name="backup_unknown_business">காப்புப்பிரதி</string>
+    <string name="backup_restore_confirm_title">காப்புப்பிரதியை மீட்டமைக்கவா?</string>
+    <string name="backup_restore_confirm_body">“%1$s” இலிருந்து புதிய வணிகம் உருவாக்கப்பட்டு நீங்கள் அதற்கு மாறுவீர்கள். உங்கள் தற்போதைய வணிகம் மாறாது.</string>
+    <string name="backup_restore_confirm_action">மீட்டமை</string>
+    <string name="offline_saved">ஆஃப்லைனில் சேமிக்கப்பட்டது. இணைப்பு திரும்பியதும் அனுப்பப்படும்.</string>
+    <string name="offline_banner">ஆஃப்லைன் — சேமித்த தரவு காட்டப்படுகிறது</string>
+    <string name="pending_view">பார்</string>
+    <string name="pending_title">ஒத்திசைவு நிலுவை</string>
+    <string name="pending_sync_now">இப்போது ஒத்திசை</string>
+    <string name="pending_empty_title">அனைத்தும் ஒத்திசைக்கப்பட்டது</string>
+    <string name="pending_empty_body">ஆஃப்லைனில் செய்த விற்பனை, கொள்முதல் மற்றும் இருப்பு மாற்றங்கள் சேவையகத்தை அடையும் வரை இங்கே தோன்றும்.</string>
+    <string name="pending_explainer">இந்த மாற்றங்கள் இந்த தொலைபேசியில் சேமிக்கப்பட்டு, சேவையகத்தை அடைய முடியும்போது தானாக அனுப்பப்படும். சேவையகம் ஒன்றை மறுத்தால் (எ.கா. போதுமான இருப்பு இல்லை), அது இங்கேயே இருக்கும்; மீண்டும் முயற்சிக்கலாம் அல்லது கைவிடலாம்.</string>
+    <string name="pending_refused">ஏற்கப்படவில்லை: %1$s</string>
+    <string name="pending_discard">கைவிடு</string>
+    <string name="pending_discard_title">இந்த மாற்றத்தைக் கைவிடவா?</string>
+    <string name="pending_discard_body">%1$s · %2$s இந்த தொலைபேசியிலிருந்து நீக்கப்படும், ஒருபோதும் அனுப்பப்படாது.</string>
+    <string name="pending_type_sale">விற்பனை</string>
+    <string name="pending_type_purchase">கொள்முதல்</string>
+    <string name="pending_type_payment">பணம் செலுத்துதல்</string>
+    <string name="pending_type_stock">இருப்பு மாற்றம்</string>
+    <string name="pending_type_transfer">இருப்புப் பரிமாற்றம்</string>
+    <plurals name="pending_count">
+        <item quantity="one">%d மாற்றம் ஒத்திசைவுக்குக் காத்திருக்கிறது</item>
+        <item quantity="other">%d மாற்றங்கள் ஒத்திசைவுக்குக் காத்திருக்கின்றன</item>
+    </plurals>
+    <plurals name="pending_failed_count">
+        <item quantity="one">%d கவனம் தேவை</item>
+        <item quantity="other">%d கவனம் தேவை</item>
+    </plurals>
+    <plurals name="logout_pending_warning">
+        <item quantity="one">ஆஃப்லைனில் செய்த %d மாற்றம் இன்னும் அனுப்பப்படவில்லை, வெளியேறினால் இழக்கப்படும்.</item>
+        <item quantity="other">ஆஃப்லைனில் செய்த %d மாற்றங்கள் இன்னும் அனுப்பப்படவில்லை, வெளியேறினால் இழக்கப்படும்.</item>
+    </plurals>
+</resources>

@@ -1,0 +1,22 @@
+[
+ {
+  "id": 5,
+  "name": "City Branch",
+  "code": "CITY",
+  "branch": true,
+  "isDefault": false,
+  "archived": false,
+  "productCount": 0,
+  "totalQuantity": 0
+ },
+ {
+  "id": 4,
+  "name": "Main Warehouse",
+  "code": "MAIN",
+  "branch": false,
+  "isDefault": true,
+  "archived": false,
+  "productCount": 1,
+  "totalQuantity": 44.0
+ }
+]

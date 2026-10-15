@@ -1,14 +1,17 @@
 package com.b2binventory.controller;
 
-import com.b2binventory.domain.Business;
+import com.b2binventory.dto.BusinessDtos.*;
 import com.b2binventory.service.BusinessService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/businesses")
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/business")
+@Tag(name = "Business")
 public class BusinessController {
 
     private final BusinessService businessService;
@@ -17,18 +20,31 @@ public class BusinessController {
         this.businessService = businessService;
     }
 
-    @GetMapping("/{id}")
-    public Business getBusiness(@PathVariable Long id) {
-        return businessService.getBusinessById(id);
-    }
-
     @GetMapping
-    public List<Business> getAllBusinesses() {
-        return businessService.getAllBusinesses();
+    public BusinessResponse get() {
+        return businessService.get();
     }
 
-    @PutMapping("/{id}")
-    public Business updateBusiness(@PathVariable Long id, @RequestBody Business business) {
-        return businessService.updateBusiness(id, business);
+    @PutMapping
+    @PreAuthorize("hasAuthority('BUSINESS_SETTINGS')")
+    public BusinessResponse update(@Valid @RequestBody UpdateBusinessRequest request) {
+        return businessService.update(request);
+    }
+
+    @PostMapping(value = "/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('BUSINESS_SETTINGS')")
+    public BusinessResponse uploadLogo(@RequestPart("file") MultipartFile file) {
+        return businessService.uploadLogo(file);
+    }
+
+    @GetMapping("/settings")
+    public SettingsResponse settings() {
+        return businessService.settings();
+    }
+
+    @PutMapping("/settings")
+    @PreAuthorize("hasAuthority('BUSINESS_SETTINGS')")
+    public SettingsResponse updateSettings(@Valid @RequestBody UpdateSettingsRequest request) {
+        return businessService.updateSettings(request);
     }
 }
