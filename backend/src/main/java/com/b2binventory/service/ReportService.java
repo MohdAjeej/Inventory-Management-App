@@ -66,6 +66,44 @@ public class ReportService {
             ORDER BY COUNT(DISTINCT p.id) DESC
             """;
 
+    private static final String MOVEMENT_TYPES_SQL = """
+            SELECT movement_type, COUNT(*), COALESCE(SUM(quantity), 0),
+                   COALESCE(SUM(CASE WHEN quantity > 0 THEN quantity END), 0),
+                   COALESCE(SUM(CASE WHEN quantity < 0 THEN -quantity END), 0)
+            FROM stock_movements
+            WHERE business_id = :bid AND created_at >= :from AND created_at < :to
+              AND (CAST(:wid AS BIGINT) IS NULL OR warehouse_id = CAST(:wid AS BIGINT))
+            GROUP BY movement_type
+            ORDER BY COUNT(*) DESC
+            """;
+
+    /** Every non-archived product with what left its stock in the period and what is available now. */
+    private static final String PRODUCT_OUTFLOW_SQL = """
+            WITH outflow AS (
+                SELECT product_id, -SUM(quantity) AS qty_out
+                FROM stock_movements
+                WHERE business_id = :bid AND created_at >= :from AND created_at < :to AND quantity < 0
+                  AND movement_type IN ('REDUCE', 'SALE', 'PURCHASE_CANCEL', 'ADJUST', 'COUNT_ADJUST')
+                  AND (CAST(:wid AS BIGINT) IS NULL OR warehouse_id = CAST(:wid AS BIGINT))
+                GROUP BY product_id
+            ), stock AS (
+                SELECT p.id, p.name, u.code, COALESCE(SUM(b.on_hand - b.reserved - b.damaged), 0) AS available
+                FROM products p
+                JOIN units u ON u.id = p.base_unit_id
+                LEFT JOIN product_variants v ON v.product_id = p.id AND v.archived = FALSE
+                LEFT JOIN stock_balances b ON b.variant_id = v.id
+                     AND (CAST(:wid AS BIGINT) IS NULL OR b.warehouse_id = CAST(:wid AS BIGINT))
+                WHERE p.business_id = :bid AND p.archived = FALSE
+                GROUP BY p.id, p.name, u.code
+            )
+            SELECT s.id, s.name, s.code, COALESCE(o.qty_out, 0), s.available
+            FROM stock s LEFT JOIN outflow o ON o.product_id = s.id
+            """;
+
+    /** Moves inside the business (between buckets or warehouses), left out of stock-in / stock-out totals. */
+    private static final Set<MovementType> INTERNAL_TYPES = EnumSet.of(MovementType.RESERVE, MovementType.RELEASE,
+            MovementType.DAMAGE, MovementType.TRANSFER_IN, MovementType.TRANSFER_OUT);
+
     private final EntityManager em;
     private final BusinessService businessService;
     private final CategoryService categoryService;
@@ -131,6 +169,53 @@ public class ReportService {
     }
 
     @Transactional(readOnly = true)
+    public MovementSummary movementSummary(Long warehouseId, Instant from, Instant to) {
+        Long businessId = CurrentUser.get().businessId();
+        if (warehouseId != null) warehouseService.find(warehouseId);
+        Instant end = to != null ? to : Instant.now();
+        Instant start = from != null ? from : end.minus(java.time.Duration.ofDays(30));
+
+        List<TypeTotal> byType = new ArrayList<>();
+        BigDecimal totalIn = BigDecimal.ZERO;
+        BigDecimal totalOut = BigDecimal.ZERO;
+        long count = 0;
+        for (Object r : em.createNativeQuery(MOVEMENT_TYPES_SQL).setParameter("bid", businessId)
+                .setParameter("from", start).setParameter("to", end).setParameter("wid", warehouseId).getResultList()) {
+            Object[] a = (Object[]) r;
+            MovementType type = MovementType.valueOf((String) a[0]);
+            long n = ((Number) a[1]).longValue();
+            byType.add(new TypeTotal(type, n, (BigDecimal) a[2]));
+            count += n;
+            // Within one warehouse a transfer really is stock in or out; across the business it is not.
+            boolean internal = INTERNAL_TYPES.contains(type)
+                    && !(warehouseId != null && (type == MovementType.TRANSFER_IN || type == MovementType.TRANSFER_OUT));
+            if (!internal) {
+                totalIn = totalIn.add((BigDecimal) a[3]);
+                totalOut = totalOut.add((BigDecimal) a[4]);
+            }
+        }
+
+        List<ProductMovement> rows = new ArrayList<>();
+        for (Object r : em.createNativeQuery(PRODUCT_OUTFLOW_SQL).setParameter("bid", businessId)
+                .setParameter("from", start).setParameter("to", end).setParameter("wid", warehouseId).getResultList()) {
+            Object[] a = (Object[]) r;
+            rows.add(new ProductMovement(((Number) a[0]).longValue(), (String) a[1], (String) a[2], (BigDecimal) a[3],
+                    (BigDecimal) a[4]));
+        }
+        List<ProductMovement> fast = rows.stream().filter(p -> p.quantityOut().signum() > 0)
+                .sorted(Comparator.comparing(ProductMovement::quantityOut).reversed()).limit(10).toList();
+        Set<Long> fastIds = new HashSet<>();
+        fast.forEach(p -> fastIds.add(p.productId()));
+        // Slow movers: stock is sitting there but little or none of it left in the period.
+        List<ProductMovement> slow = rows.stream()
+                .filter(p -> p.available().signum() > 0 && !fastIds.contains(p.productId()))
+                .sorted(Comparator.comparing(ProductMovement::quantityOut)
+                        .thenComparing(ProductMovement::available, Comparator.reverseOrder()))
+                .limit(10).toList();
+        return new MovementSummary(start, end, totalIn, totalOut, count, byType, fast, slow);
+    }
+
+    @Transactional(readOnly = true)
     public DashboardResponse dashboard() {
         Long businessId = CurrentUser.get().businessId();
         BusinessSettings settings = businessService.settingsEntity(businessId);
@@ -169,7 +254,9 @@ public class ReportService {
                 low.size(), out.size(), low.stream().limit(10).toList(), out.stream().limit(10).toList(),
                 stockService.historyAll(null, null, null, null, null, null, null, 10),
                 categories.stream().limit(10).toList(), warehouses, notifications.unreadCount().count(),
-                recent.stream().limit(5).toList(), highlights(businessId));
+                recent.stream().limit(5).toList(), highlights(businessId),
+                recent.stream().filter(p -> p.available().signum() > 0)
+                        .sorted(Comparator.comparing(RecentProduct::available).reversed()).limit(5).toList());
     }
 
     private SalesHighlights highlights(Long businessId) {

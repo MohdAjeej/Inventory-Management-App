@@ -25,17 +25,23 @@ import androidx.lifecycle.viewModelScope
 import com.b2binventory.app.data.remote.*
 import com.b2binventory.app.ui.common.*
 import com.b2binventory.app.ui.dashboard.MovementRow
+import com.b2binventory.app.ui.theme.appColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 
-enum class ReportTab(val label: String, val key: String) {
+enum class ReportTab(val label: String, val key: String, val exportable: Boolean = true) {
+    SUMMARY("Summary", "movement-summary", exportable = false),
     INVENTORY("Inventory", "inventory"),
     LOW("Low stock", "low-stock"),
+    OUT("Out of stock", "inventory", exportable = false),
     MOVEMENTS("Movements", "movements"),
 }
+
+/** Tabs that are filtered by a date range rather than by category. */
+private val ReportTab.dated get() = this == ReportTab.MOVEMENTS || this == ReportTab.SUMMARY
 
 data class ReportFilters(
     val warehouse: Warehouse? = null,
@@ -45,7 +51,8 @@ data class ReportFilters(
     val type: String? = null,
 )
 
-data class ReportData(val rows: List<InventoryRow> = emptyList(), val movements: List<Movement> = emptyList(), val total: Long = 0)
+data class ReportData(val rows: List<InventoryRow> = emptyList(), val movements: List<Movement> = emptyList(), val total: Long = 0,
+                      val summary: MovementSummary? = null)
 
 class ReportsViewModel(private val api: ApiService) : ViewModel() {
     private val _tab = MutableStateFlow(ReportTab.INVENTORY)
@@ -87,6 +94,10 @@ class ReportsViewModel(private val api: ApiService) : ViewModel() {
             when (_tab.value) {
                 ReportTab.INVENTORY -> api.inventoryReport(f.warehouse?.id, f.category?.id, size = 500).let { ReportData(rows = it.content, total = it.totalElements) }
                 ReportTab.LOW -> api.lowStockReport(f.warehouse?.id, f.category?.id, size = 500).let { ReportData(rows = it.content, total = it.totalElements) }
+                ReportTab.OUT -> api.inventoryReport(f.warehouse?.id, f.category?.id, size = 500, status = listOf("OUT_OF_STOCK"))
+                    .let { ReportData(rows = it.content, total = it.totalElements) }
+                ReportTab.SUMMARY -> api.movementSummary(f.warehouse?.id, f.from.blankToNull(), f.to.blankToNull())
+                    .let { ReportData(summary = it, total = it.movementCount) }
                 ReportTab.MOVEMENTS -> api.movementReport(f.warehouse?.id, f.type?.let { listOf(it) }, f.from.blankToNull(),
                     f.to.blankToNull(), size = 200).let { ReportData(movements = it.content, total = it.totalElements) }
             }
@@ -184,7 +195,7 @@ private fun StockReportsScreen(header: @Composable () -> Unit, onOpenProduct: (L
     Scaffold(
         topBar = {
             AppTopBar("Reports") {
-                if (me?.can("REPORT_EXPORT") == true) {
+                if (me?.can("REPORT_EXPORT") == true && tab.exportable) {
                     Box {
                         if (exporting) CircularProgressIndicator(Modifier.size(24.dp).padding(end = 8.dp))
                         else IconButton(onClick = { exportMenu = true }) { Icon(Icons.Default.Download, "Export") }
@@ -206,7 +217,7 @@ private fun StockReportsScreen(header: @Composable () -> Unit, onOpenProduct: (L
     ) { padding ->
         Column(Modifier.padding(padding)) {
             header()
-            TabRow(selectedTabIndex = tab.ordinal) {
+            ScrollableTabRow(selectedTabIndex = tab.ordinal, edgePadding = 8.dp) {
                 ReportTab.entries.forEach { t -> Tab(tab == t, { vm.setTab(t) }, text = { Text(t.label) }) }
             }
             LazyRow(contentPadding = PaddingValues(16.dp, 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -214,12 +225,12 @@ private fun StockReportsScreen(header: @Composable () -> Unit, onOpenProduct: (L
                     ChipMenu(filters.warehouse?.name ?: "All warehouses", filters.warehouse != null,
                         listOf<Warehouse?>(null) + warehouses, { it?.name ?: "All warehouses" }) { w -> vm.setFilters { it.copy(warehouse = w) } }
                 }
-                if (tab != ReportTab.MOVEMENTS) {
+                if (!tab.dated) {
                     item {
                         ChipMenu(filters.category?.name ?: "All categories", filters.category != null,
                             listOf<CategoryNode?>(null) + categories, { it?.path ?: "All categories" }) { c -> vm.setFilters { it.copy(category = c) } }
                     }
-                } else {
+                } else if (tab == ReportTab.MOVEMENTS) {
                     item {
                         ChipMenu(filters.type?.let(Fmt::movement) ?: "All types", filters.type != null,
                             listOf<String?>(null, "OPENING", "ADD", "REDUCE", "ADJUST", "TRANSFER_OUT", "TRANSFER_IN", "COUNT_ADJUST",
@@ -228,7 +239,7 @@ private fun StockReportsScreen(header: @Composable () -> Unit, onOpenProduct: (L
                     }
                 }
             }
-            if (tab == ReportTab.MOVEMENTS) {
+            if (tab.dated) {
                 Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     DateField("From", filters.from, { v -> vm.setFilters { it.copy(from = v) } }, Modifier.weight(1f))
                     DateField("To", filters.to, { v -> vm.setFilters { it.copy(to = v) } }, Modifier.weight(1f))
@@ -236,11 +247,13 @@ private fun StockReportsScreen(header: @Composable () -> Unit, onOpenProduct: (L
             }
             LoadableContent(state, vm::load) { data ->
                 LazyColumn(contentPadding = PaddingValues(16.dp)) {
-                    item {
+                    if (tab != ReportTab.SUMMARY) item {
                         Text("${data.total} rows", style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    if (tab == ReportTab.MOVEMENTS) {
+                    if (tab == ReportTab.SUMMARY) {
+                        data.summary?.let { s -> item { MovementSummaryContent(s, filters.from.isBlank() && filters.to.isBlank(), onOpenProduct) } }
+                    } else if (tab == ReportTab.MOVEMENTS) {
                         if (data.movements.isEmpty()) item { EmptyState("No movements in this period", icon = Icons.Default.History) }
                         items(data.movements, key = { it.id }) { m ->
                             MovementRow(m) { onOpenProduct(m.productId) }
@@ -248,12 +261,71 @@ private fun StockReportsScreen(header: @Composable () -> Unit, onOpenProduct: (L
                         }
                     } else {
                         if (data.rows.isEmpty()) item {
-                            EmptyState(if (tab == ReportTab.LOW) "Nothing is running low" else "No products", icon = Icons.Default.Inventory2)
+                            when (tab) {
+                                ReportTab.LOW -> EmptyState("Nothing is running low", icon = Icons.Default.CheckCircleOutline)
+                                ReportTab.OUT -> EmptyState("Nothing is out of stock", icon = Icons.Default.CheckCircleOutline)
+                                else -> EmptyState("No products", icon = Icons.Default.Inventory2)
+                            }
                         }
                         items(data.rows, key = { it.variantId }) { r -> InventoryRowItem(r) { onOpenProduct(r.productId) } }
                     }
                 }
             }
+        }
+    }
+}
+
+/** Stock in/out totals, movements by type, and the fastest and slowest moving products for the period. */
+@Composable
+private fun MovementSummaryContent(s: MovementSummary, defaultPeriod: Boolean, onOpenProduct: (Long) -> Unit) {
+    val c = MaterialTheme.appColors
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (defaultPeriod) {
+            Text("Last 30 days. Pick dates above to change the period.", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatTile("Stock in", Fmt.qty(s.totalIn), Icons.Default.SouthWest, c.success, Modifier.weight(1f))
+            StatTile("Stock out", Fmt.qty(s.totalOut), Icons.Default.NorthEast, c.warning, Modifier.weight(1f))
+            StatTile("Movements", s.movementCount.toString(), Icons.Default.SwapVert, MaterialTheme.colorScheme.primary,
+                Modifier.weight(1f))
+        }
+        SectionCard("Movements by type") {
+            HorizontalBarChart(s.byType.map { BarItem(tr(Fmt.movement(it.type)), it.count.toDouble(), it.count.toString()) },
+                emptyText = "No stock movements in this period")
+        }
+        SectionCard("Fast-moving products") {
+            Text("Most stock taken out in this period", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (s.fastMoving.isEmpty()) {
+                Text("Not enough stock movement in this period", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            s.fastMoving.forEach { ProductMovementRow(it, c.success) { onOpenProduct(it.productId) } }
+        }
+        SectionCard("Slow-moving products") {
+            Text("In stock, but little or nothing taken out in this period", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (s.slowMoving.isEmpty()) {
+                Text("Not enough stock movement in this period", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            s.slowMoving.forEach { ProductMovementRow(it, c.warning) { onOpenProduct(it.productId) } }
+        }
+    }
+}
+
+@Composable
+private fun ProductMovementRow(p: ProductMovement, tint: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        IconBadge(Icons.Default.Inventory2, tint, 36.dp)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            androidx.compose.material3.Text(p.productName, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("${Fmt.qty(p.available)} ${p.unit} available", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text("${Fmt.qty(p.quantityOut)} ${p.unit}", style = MaterialTheme.typography.titleSmall)
+            Text("taken out", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

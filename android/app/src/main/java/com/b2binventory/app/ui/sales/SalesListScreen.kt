@@ -173,8 +173,8 @@ private fun SalesList(vm: SalesHubViewModel, onOpen: (Long) -> Unit) {
     val currency by vm.currency.collectAsStateWithLifecycle()
     LifecycleResumeEffect(Unit) { vm.loadSales(); onPauseOrDispose { } }
     Column {
-        OutlinedTextField(filter.q, { v -> vm.setFilter({ it.copy(q = v) }, debounce = true) }, Modifier.fillMaxWidth().padding(16.dp, 8.dp),
-            singleLine = true, leadingIcon = { Icon(Icons.Default.Search, null) }, placeholder = { Text("Invoice no., sale id or customer") })
+        SearchField(filter.q, { v -> vm.setFilter({ it.copy(q = v) }, debounce = true) }, "Invoice no., sale id or customer",
+            Modifier.padding(16.dp, 8.dp))
         LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(listOf<Int?>(null, 1, 7, 30)) { d ->
                 FilterChip(filter.days == d, { vm.setFilter({ it.copy(days = d) }) },
@@ -234,8 +234,7 @@ private fun PurchasesList(vm: SalesHubViewModel, onOpen: (Long) -> Unit) {
     var q by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(q) { delay(300); vm.loadPurchases(q) }
     Column {
-        OutlinedTextField(q, { q = it }, Modifier.fillMaxWidth().padding(16.dp, 8.dp), singleLine = true,
-            leadingIcon = { Icon(Icons.Default.Search, null) }, placeholder = { Text("Purchase no., bill no. or supplier") })
+        SearchField(q, { q = it }, "Purchase no., bill no. or supplier", Modifier.padding(16.dp, 8.dp))
         LoadableContent(state, { vm.loadPurchases(q) }) { list ->
             LazyColumn(contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 24.dp)) {
                 if (list.isEmpty()) item { EmptyState("No purchases yet", "Record goods received from suppliers to add stock and track costs.",
@@ -272,8 +271,7 @@ private fun PartyList(vm: SalesHubViewModel, supplier: Boolean) {
     LaunchedEffect(q, supplier) { delay(300); if (supplier) vm.loadSuppliers(q) else vm.loadCustomers(q) }
     Column {
         Row(Modifier.padding(16.dp, 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(q, { q = it }, Modifier.weight(1f), singleLine = true, leadingIcon = { Icon(Icons.Default.Search, null) },
-                placeholder = { Text("Name, phone or email") })
+            SearchField(q, { q = it }, "Name, phone or email", Modifier.weight(1f))
             Spacer(Modifier.width(8.dp))
             FilledTonalButton(onClick = { adding = true }) { Icon(Icons.Default.Add, null); Text("Add") }
         }

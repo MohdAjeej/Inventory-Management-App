@@ -11,6 +11,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import com.b2binventory.app.ui.theme.appColors
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -112,18 +115,27 @@ fun EmployeesScreen(onBack: () -> Unit, onOpen: (Long) -> Unit) {
             }
             if (tab == 0) {
                 LoadableContent(members, vm::load) { list ->
-                    LazyColumn(contentPadding = PaddingValues(bottom = 88.dp)) {
+                    LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(list, key = { it.membershipId }) { e ->
-                            ListItem(
-                                headlineContent = { Text(e.fullName) },
-                                supportingContent = { Text("${e.email}\n${Fmt.role(e.role)}") },
-                                leadingContent = { Icon(Icons.Default.Person, null) },
-                                trailingContent = {
-                                    if (e.status != "ACTIVE") AssistChip(onClick = {}, label = { Text("Deactivated") })
-                                },
-                                modifier = Modifier.clickableItem { onOpen(e.membershipId) },
-                            )
-                            HorizontalDivider()
+                            val active = e.status == "ACTIVE"
+                            AppCard(onClick = { onOpen(e.membershipId) }) {
+                                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Avatar(e.fullName, 44.dp, if (active) roleColor(e.role) else MaterialTheme.colorScheme.outline)
+                                    Spacer(Modifier.width(12.dp))
+                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        androidx.compose.material3.Text(e.fullName, style = MaterialTheme.typography.titleSmall)
+                                        androidx.compose.material3.Text(e.email, style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            RoleBadge(e.role)
+                                            if (active) Pill("Active", MaterialTheme.appColors.success, Icons.Default.CheckCircle)
+                                            else Pill("Deactivated", MaterialTheme.appColors.danger, Icons.Default.Block)
+                                        }
+                                    }
+                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline)
+                                }
+                            }
                         }
                     }
                 }
@@ -132,16 +144,21 @@ fun EmployeesScreen(onBack: () -> Unit, onOpen: (Long) -> Unit) {
                     if (list.isEmpty()) {
                         EmptyState("No pending invitations", "Invite team members with the Invite button.", Icons.Default.MailOutline)
                     } else {
-                        LazyColumn(contentPadding = PaddingValues(bottom = 88.dp)) {
+                        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(list, key = { it.id }) { i ->
-                                ListItem(
-                                    headlineContent = { Text(i.email) },
-                                    supportingContent = { Text("${Fmt.role(i.role)} · code ${i.code} · expires ${Fmt.dateTime(i.expiresAt)}") },
-                                    trailingContent = {
-                                        IconButton(onClick = { cancelTarget = i }) { Icon(Icons.Default.Close, "Cancel invitation") }
-                                    },
-                                )
-                                HorizontalDivider()
+                                AppCard {
+                                    Row(Modifier.padding(start = 12.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        IconBadge(Icons.Default.MailOutline, MaterialTheme.colorScheme.primary, 44.dp)
+                                        Spacer(Modifier.width(12.dp))
+                                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            androidx.compose.material3.Text(i.email, style = MaterialTheme.typography.titleSmall)
+                                            Text("${Fmt.role(i.role)} · code ${i.code} · expires ${Fmt.dateTime(i.expiresAt)}",
+                                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        IconButton(onClick = { cancelTarget = i }) { Icon(Icons.Default.Close, tr("Cancel invitation")) }
+                                    }
+                                }
                             }
                         }
                     }

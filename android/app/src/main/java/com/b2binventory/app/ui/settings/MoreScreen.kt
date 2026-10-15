@@ -8,10 +8,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -40,6 +44,8 @@ class MoreViewModel(private val auth: AuthRepository) : ViewModel() {
 private data class MenuItem(val label: String, val description: String, val icon: ImageVector, val route: String,
                             val permission: String? = null)
 
+private data class MenuGroup(val title: String, val items: List<MenuItem>)
+
 @Composable
 fun MoreScreen(onNavigate: (String) -> Unit, onSignedOut: () -> Unit) {
     val vm = appViewModel { c, _ -> MoreViewModel(c.authRepository) }
@@ -47,46 +53,69 @@ fun MoreScreen(onNavigate: (String) -> Unit, onSignedOut: () -> Unit) {
     var confirmLogout by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { vm.refreshMe() }
 
-    val items = listOf(
-        MenuItem("Stock activity", "Add, reduce, correct or move stock, and see every change", Icons.Default.SwapVert, Routes.STOCK),
-        MenuItem("Profile", "Your details, password and businesses", Icons.Default.Person, Routes.PROFILE),
-        MenuItem("Business settings", "Business profile and inventory preferences", Icons.Default.Store, Routes.BUSINESS),
-        MenuItem("Categories & fields", "Categories, subcategories and custom product fields", Icons.Default.Category, Routes.CATEGORIES),
-        MenuItem("Units", "Units of measure and conversions", Icons.Default.Straighten, Routes.UNITS),
-        MenuItem("Warehouses & branches", "Locations where stock is held", Icons.Default.Warehouse, Routes.WAREHOUSES),
-        MenuItem("Stock counts", "Count stock and reconcile differences", Icons.AutoMirrored.Filled.FactCheck, Routes.COUNTS, "STOCK_COUNT"),
-        MenuItem("Employees", "Team members, roles and permissions", Icons.Default.Groups, Routes.EMPLOYEES, "EMPLOYEE_MANAGE"),
-        MenuItem("Notifications", "Stock alerts and team events", Icons.Default.Notifications, Routes.NOTIFICATIONS),
-        MenuItem("Appearance & language", "Dark mode and app language", Icons.Default.Palette, Routes.APPEARANCE),
-        MenuItem("Backup & restore", "Save all business data to a file, or restore one", Icons.Default.Backup, Routes.BACKUP),
-        MenuItem("Pending sync", "Changes saved on this phone while offline", Icons.Default.CloudSync, Routes.PENDING_SYNC),
-    ).filter { it.permission == null || me?.can(it.permission) == true }
+    val groups = listOf(
+        MenuGroup("Inventory", listOf(
+            MenuItem("Stock activity", "Add, reduce, correct or move stock, and see every change", Icons.Default.SwapVert, Routes.STOCK),
+            MenuItem("Categories & fields", "Categories, subcategories and custom product fields", Icons.Default.Category, Routes.CATEGORIES),
+            MenuItem("Units", "Units of measure and conversions", Icons.Default.Straighten, Routes.UNITS),
+            MenuItem("Warehouses & branches", "Locations where stock is held", Icons.Default.Warehouse, Routes.WAREHOUSES),
+            MenuItem("Stock counts", "Count stock and reconcile differences", Icons.AutoMirrored.Filled.FactCheck, Routes.COUNTS, "STOCK_COUNT"),
+        )),
+        MenuGroup("Business", listOf(
+            MenuItem("Business settings", "Business profile and inventory preferences", Icons.Default.Store, Routes.BUSINESS),
+            MenuItem("Employees", "Team members, roles and permissions", Icons.Default.Groups, Routes.EMPLOYEES, "EMPLOYEE_MANAGE"),
+            MenuItem("Backup & restore", "Save all business data to a file, or restore one", Icons.Default.Backup, Routes.BACKUP),
+        )),
+        MenuGroup("App", listOf(
+            MenuItem("Appearance & language", "Dark mode and app language", Icons.Default.Palette, Routes.APPEARANCE),
+            MenuItem("Notifications", "Stock alerts and team events", Icons.Default.Notifications, Routes.NOTIFICATIONS),
+            MenuItem("Pending sync", "Changes saved on this phone while offline", Icons.Default.CloudSync, Routes.PENDING_SYNC),
+        )),
+        MenuGroup("Account", listOf(
+            MenuItem("Profile", "Your details, password and businesses", Icons.Default.Person, Routes.PROFILE),
+        )),
+    ).map { g -> g.copy(items = g.items.filter { it.permission == null || me?.can(it.permission) == true }) }
+        .filter { it.items.isNotEmpty() }
 
     Scaffold(topBar = { AppTopBar("More") }) { padding ->
-        LazyColumn(Modifier.padding(padding)) {
-            item {
-                ListItem(
-                    headlineContent = { Text(me?.fullName ?: "") },
-                    supportingContent = { Text("${Fmt.role(me?.role ?: "")} · ${me?.businessName ?: ""}") },
-                    leadingContent = { Icon(Icons.Default.AccountCircle, null, Modifier.size(40.dp)) },
-                )
-                HorizontalDivider()
-            }
-            items(items) { item ->
-                ListItem(
-                    headlineContent = { Text(item.label) },
-                    supportingContent = { Text(item.description) },
-                    leadingContent = { Icon(item.icon, null) },
-                    modifier = Modifier.clickableItem { onNavigate(item.route) },
-                )
-            }
-            item {
-                HorizontalDivider()
-                ListItem(
-                    headlineContent = { Text("Sign out", color = MaterialTheme.colorScheme.error) },
-                    leadingContent = { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = MaterialTheme.colorScheme.error) },
-                    modifier = Modifier.clickableItem { confirmLogout = true },
-                )
+        ResponsiveContent(Modifier.padding(padding)) {
+            LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                item {
+                    AppCard(onClick = { onNavigate(Routes.PROFILE) }) {
+                        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Avatar(me?.fullName ?: "", 52.dp)
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                androidx.compose.material3.Text(me?.fullName ?: "", style = MaterialTheme.typography.titleMedium)
+                                androidx.compose.material3.Text(me?.businessName ?: "", style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(Modifier.height(4.dp))
+                                me?.role?.let { RoleBadge(it) }
+                            }
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline)
+                        }
+                    }
+                }
+                items(groups) { g ->
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(g.title, Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary)
+                        AppCard {
+                            g.items.forEachIndexed { i, item ->
+                                if (i > 0) HorizontalDivider(Modifier.padding(start = 68.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                                MenuRow(item.label, item.description, item.icon) { onNavigate(item.route) }
+                            }
+                        }
+                    }
+                }
+                item {
+                    AppCard {
+                        MenuRow("Sign out", null, Icons.AutoMirrored.Filled.Logout, MaterialTheme.colorScheme.error) {
+                            confirmLogout = true
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
             }
         }
     }
@@ -100,3 +129,23 @@ fun MoreScreen(onNavigate: (String) -> Unit, onSignedOut: () -> Unit) {
 }
 
 fun Modifier.clickableItem(onClick: () -> Unit): Modifier = this.clickable(onClick = onClick)
+
+@Composable
+private fun MenuRow(label: String, description: String?, icon: ImageVector,
+                    tint: Color = MaterialTheme.colorScheme.primary, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        IconBadge(icon, tint, 40.dp)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium,
+                color = if (tint == MaterialTheme.colorScheme.error) tint else Color.Unspecified)
+            if (description != null) {
+                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (description != null) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline)
+        }
+    }
+}

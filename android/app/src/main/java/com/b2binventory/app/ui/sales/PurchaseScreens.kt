@@ -229,7 +229,7 @@ fun RecordPurchaseScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
             Text("Products received", style = MaterialTheme.typography.titleMedium)
             lines.forEach { l ->
                 val p = l.product
-                ElevatedCard(Modifier.fillMaxWidth()) {
+                AppCard {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {

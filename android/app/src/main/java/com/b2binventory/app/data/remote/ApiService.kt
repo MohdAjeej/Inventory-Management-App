@@ -133,7 +133,13 @@ interface ApiService {
         @Query("q") q: String? = null,
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 100,
+        @Query("status") status: List<String>? = null,
     ): Page<InventoryRow>
+    @GET("api/reports/movement-summary") suspend fun movementSummary(
+        @Query("warehouseId") warehouseId: Long? = null,
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null,
+    ): MovementSummary
     @GET("api/reports/low-stock") suspend fun lowStockReport(
         @Query("warehouseId") warehouseId: Long? = null,
         @Query("categoryId") categoryId: Long? = null,

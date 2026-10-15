@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -18,6 +19,8 @@ import com.b2binventory.app.data.repository.AuthRepository
 import com.b2binventory.app.data.session.SessionStore
 import com.b2binventory.app.ui.auth.FormState
 import com.b2binventory.app.ui.common.*
+import com.b2binventory.app.ui.theme.appColors
+import androidx.compose.material.icons.automirrored.filled.Logout
 import com.b2binventory.app.ui.sync.rememberPendingOps
 import com.b2binventory.app.R
 import androidx.compose.ui.res.pluralStringResource
@@ -128,8 +131,15 @@ fun ProfileScreen(onBack: () -> Unit, onSwitched: () -> Unit, onSignedOut: () ->
         FormColumn(padding) {
             SectionCard("Your details") {
                 ErrorBanner(profile.error)
-                Text(me.email, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("${Fmt.role(me.role)} at ${me.businessName}")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Avatar(me.fullName, 56.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        androidx.compose.material3.Text(me.email, style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${Fmt.role(me.role)} at ${me.businessName}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
                 FormField(name, { name = it }, "Full name", required = true, error = profile.fieldErrors["fullName"])
                 FormField(phone, { phone = it }, "Phone", keyboardType = KeyboardType.Phone)
                 PrimaryButton("Save", { vm.saveProfile(name, phone) }, loading = profile.submitting)
@@ -137,14 +147,23 @@ fun ProfileScreen(onBack: () -> Unit, onSwitched: () -> Unit, onSignedOut: () ->
             if (me.memberships.size > 1) {
                 SectionCard("Your businesses") {
                     me.memberships.forEach { m ->
-                        ListItem(
-                            headlineContent = { Text(m.businessName) },
-                            supportingContent = { Text(Fmt.role(m.role)) },
-                            trailingContent = {
-                                if (m.businessId == me.businessId) Icon(Icons.Default.Check, "Current")
-                                else TextButton(onClick = { vm.switchTo(m.businessId) }) { Text("Switch") }
-                            },
-                        )
+                        val current = m.businessId == me.businessId
+                        AppCard(containerColor = if (current) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+                            else MaterialTheme.colorScheme.surface) {
+                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Avatar(m.businessName, 44.dp)
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    androidx.compose.material3.Text(m.businessName, style = MaterialTheme.typography.titleSmall)
+                                    m.businessType?.takeIf { it.isNotBlank() }?.let {
+                                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    RoleBadge(m.role)
+                                }
+                                if (current) Pill("Current", MaterialTheme.appColors.success, Icons.Default.Check)
+                                else FilledTonalButton(onClick = { vm.switchTo(m.businessId) }) { Text("Switch") }
+                            }
+                        }
                     }
                 }
             }
@@ -156,11 +175,8 @@ fun ProfileScreen(onBack: () -> Unit, onSwitched: () -> Unit, onSignedOut: () ->
                 OutlinedButton(onClick = { vm.changePassword(current, new, confirm, onSignedOut) },
                     enabled = !password.submitting, modifier = Modifier.fillMaxWidth()) { Text("Change password") }
             }
-            OutlinedButton(onClick = { if (unsynced > 0) confirmLogout = true else vm.logout(onSignedOut) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
-                Text("Sign out")
-            }
+            DangerButton("Sign out", { if (unsynced > 0) confirmLogout = true else vm.logout(onSignedOut) },
+                icon = Icons.AutoMirrored.Filled.Logout)
             Spacer(Modifier.height(24.dp))
         }
     }

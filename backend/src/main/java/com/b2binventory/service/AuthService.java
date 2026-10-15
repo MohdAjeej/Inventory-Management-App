@@ -236,8 +236,11 @@ public class AuthService {
         AppUser user = membership.getUser();
         List<MembershipSummary> summaries = memberships.findByUserIdOrderByCreatedAtAsc(user.getId()).stream()
                 .filter(m -> m.getStatus() == MembershipStatus.ACTIVE)
-                .map(m -> new MembershipSummary(m.getId(), m.getBusinessId(),
-                        businesses.findById(m.getBusinessId()).map(Business::getName).orElse(""), m.getRole()))
+                .map(m -> {
+                    Business b = businesses.findById(m.getBusinessId()).orElse(null);
+                    return new MembershipSummary(m.getId(), m.getBusinessId(), b != null ? b.getName() : "", m.getRole(),
+                            b != null ? b.getBusinessType() : null);
+                })
                 .toList();
         String businessName = businesses.findById(membership.getBusinessId()).map(Business::getName).orElse("");
         return new MeResponse(user.getId(), user.getFullName(), user.getEmail(), user.getPhone(), membership.getId(),

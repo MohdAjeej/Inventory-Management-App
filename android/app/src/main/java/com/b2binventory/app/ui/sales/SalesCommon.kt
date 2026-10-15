@@ -102,8 +102,7 @@ fun ProductPickerDialog(api: ApiService, title: String, onPick: (ProductSummary)
         Surface(Modifier.fillMaxSize()) {
             Scaffold(topBar = { AppTopBar(title, onBack = onDismiss) }) { padding ->
                 Column(Modifier.padding(padding)) {
-                    OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth().padding(16.dp, 8.dp), singleLine = true,
-                        leadingIcon = { Icon(Icons.Default.Search, null) }, placeholder = { Text("Search name, SKU or barcode") })
+                    SearchField(query, { query = it }, "Search name, SKU or barcode", Modifier.padding(16.dp, 8.dp))
                     if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                     error?.let { ErrorBanner(it) }
                     LazyColumn {
@@ -145,7 +144,7 @@ fun PartyField(
     var open by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (selected != null) {
-            OutlinedCard(Modifier.fillMaxWidth()) {
+            AppCard {
                 ListItem(
                     headlineContent = { Text(selected.name) },
                     supportingContent = selected.phone?.let { { Text(it) } },

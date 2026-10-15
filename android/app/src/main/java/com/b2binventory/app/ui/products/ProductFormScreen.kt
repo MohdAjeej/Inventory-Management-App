@@ -4,6 +4,7 @@ import com.b2binventory.app.ui.common.Text
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
@@ -206,7 +207,7 @@ fun ProductFormScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
                 Text("Fields marked * are required.", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                FormSection("Basic information")
+                SectionCard("Basic information") {
                 FormField(form.name, { v -> vm.update { it.copy(name = v) } }, "Product name", required = true, error = e["name"],
                     placeholder = "e.g. Basmati Rice 5 kg")
                 DropdownField("Category", categories, categories.firstOrNull { it.id == form.categoryId }, { vm.setCategory(it.id) },
@@ -215,8 +216,9 @@ fun ProductFormScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
                     { u -> vm.update { it.copy(unitId = u.id) } }, { "${it.name} (${it.code})" }, error = e["baseUnitId"], required = true)
                 FormField(form.sku, { v -> vm.update { it.copy(sku = v) } }, "Product code / SKU", error = e["sku"],
                     placeholder = "e.g. RICE-5KG", supporting = "Optional. Must be unique in your business.")
+                }
 
-                FormSection("Stock")
+                SectionCard("Stock") {
                 if (vm.editId == null && me?.can("STOCK_ADD") == true) {
                     FormField(form.openingQty, { v -> vm.update { it.copy(openingQty = v) } }, "Opening stock",
                         keyboardType = KeyboardType.Decimal, error = e["openingStock.quantity"] ?: e["quantity"],
@@ -225,8 +227,9 @@ fun ProductFormScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
                 FormField(form.minStock, { v -> vm.update { it.copy(minStock = v.filter(Char::isDigit)) } }, "Minimum stock level",
                     keyboardType = KeyboardType.Number, error = e["minStock"], placeholder = "e.g. 10",
                     supporting = "You get a low-stock alert at this level. Leave empty to use the business default.")
+                }
 
-                FormSection("Prices (per ${units.firstOrNull { it.id == form.unitId }?.code ?: "unit"})")
+                SectionCard("Prices (per ${units.firstOrNull { it.id == form.unitId }?.code ?: "unit"})") {
                 val cur = if (currency.isNotBlank()) " ($currency)" else ""
                 if (canSeeCost) {
                     FormField(form.purchasePrice, { v -> vm.update { it.copy(purchasePrice = v) } }, "Purchase price$cur",
@@ -240,10 +243,9 @@ fun ProductFormScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
                 val sell = form.salePrice.toDoubleOrNull()
                 if (canSeeCost && buy != null && sell != null) {
                     val per = sell - buy
-                    Text("Profit per unit: ${Fmt.qty(Math.round(per * 100) / 100.0)}" +
-                        (if (sell > 0) " (${Fmt.qty(Math.round(per / sell * 1000) / 10.0)}% margin)" else ""),
-                        color = if (per >= 0) com.b2binventory.app.ui.theme.StatusColors.ok else MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium)
+                    MessageBanner(if (per >= 0) BannerKind.SUCCESS else BannerKind.ERROR,
+                        "Profit per unit: ${Fmt.qty(Math.round(per * 100) / 100.0)}" +
+                        (if (sell > 0) " (${Fmt.qty(Math.round(per / sell * 1000) / 10.0)}% margin)" else ""))
                 }
                 FormField(form.taxRate, { v -> vm.update { it.copy(taxRate = v) } }, "Tax rate % (optional)",
                     keyboardType = KeyboardType.Decimal, error = e["taxRate"], placeholder = "e.g. 18",
@@ -253,11 +255,13 @@ fun ProductFormScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
                         { s -> vm.update { it.copy(supplierId = s.id) } }, { it.name }, noneLabel = "No supplier",
                         onNone = { vm.update { it.copy(supplierId = null) } }, error = e["supplierId"])
                 }
+                }
 
                 if (schema.fields.isNotEmpty()) {
-                    FormSection(if (form.categoryId == null) "Details" else "Details for this category")
-                    schema.fields.forEach { def ->
-                        AttributeInput(def, form.attributes[def.key], e["attributes.${def.key}"]) { vm.setAttribute(def.key, it) }
+                    SectionCard(if (form.categoryId == null) "Details" else "Details for this category") {
+                        schema.fields.forEach { def ->
+                            AttributeInput(def, form.attributes[def.key], e["attributes.${def.key}"]) { vm.setAttribute(def.key, it) }
+                        }
                     }
                 }
 
@@ -304,16 +308,11 @@ fun ProductFormScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
                         }
                     }
                 }
-                PrimaryButton(if (vm.editId == null) "Save product" else "Save changes", vm::save, loading = state.saving)
-                OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth(), enabled = !state.saving) { Text("Cancel") }
+                PrimaryButton(if (vm.editId == null) "Save product" else "Save changes", vm::save, loading = state.saving,
+                    icon = Icons.Default.Check)
+                SecondaryButton("Cancel", onBack, enabled = !state.saving)
                 Spacer(Modifier.height(24.dp))
             }
         }
     }
-}
-
-@Composable
-private fun FormSection(title: String) {
-    Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 8.dp))
 }

@@ -1,19 +1,20 @@
 package com.b2binventory.app.ui.dashboard
 
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import com.b2binventory.app.ui.common.Text
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.FactCheck
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -21,20 +22,50 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.b2binventory.app.data.remote.ApiResult
 import com.b2binventory.app.data.remote.ApiService
 import com.b2binventory.app.data.remote.Dashboard
 import com.b2binventory.app.data.remote.Movement
+import com.b2binventory.app.data.remote.ProductSummary
 import com.b2binventory.app.data.remote.SalesHighlights
+import com.b2binventory.app.data.remote.apiCall
+import com.b2binventory.app.data.repository.AuthRepository
 import com.b2binventory.app.ui.common.*
+import com.b2binventory.app.ui.theme.Spacing
 import com.b2binventory.app.ui.theme.StatusColors
+import com.b2binventory.app.ui.theme.appColors
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
-class DashboardViewModel(private val api: ApiService) : ViewModel() {
+class DashboardViewModel(private val api: ApiService, private val auth: AuthRepository) : ViewModel() {
     private val _state = MutableStateFlow(Loadable<Dashboard>())
     val state = _state.asStateFlow()
 
-    fun load() = _state.load(viewModelScope) { api.dashboard() }
+    /** Newest products, from the product list sorted by creation date. */
+    private val _recentlyAdded = MutableStateFlow<List<ProductSummary>>(emptyList())
+    val recentlyAdded = _recentlyAdded.asStateFlow()
+
+    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 2)
+    val messages = _messages.asSharedFlow()
+
+    fun load() {
+        _state.load(viewModelScope) { api.dashboard() }
+        viewModelScope.launch {
+            (apiCall { api.products(sort = "created", size = 5) } as? ApiResult.Ok)?.let { _recentlyAdded.value = it.value.content }
+        }
+    }
+
+    fun switchBusiness(businessId: Long) {
+        viewModelScope.launch {
+            when (val r = auth.switchBusiness(businessId)) {
+                is ApiResult.Ok -> load()
+                is ApiResult.Err -> _messages.emit(r.message)
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,133 +81,113 @@ fun DashboardScreen(
     onStockActivity: () -> Unit,
     onNotifications: () -> Unit,
 ) {
-    val vm = appViewModel { c, _ -> DashboardViewModel(c.api) }
+    val vm = appViewModel { c, _ -> DashboardViewModel(c.api, c.authRepository) }
     val state by vm.state.collectAsStateWithLifecycle()
+    val recentlyAdded by vm.recentlyAdded.collectAsStateWithLifecycle()
     val me = LocalMe.current
+    val wide = rememberWidthClass() != WidthClass.COMPACT
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) { vm.messages.collect { snackbar.showSnackbar(tr(it)) } }
     LifecycleResumeEffect(Unit) {
         vm.load()
         onPauseOrDispose { }
     }
 
-    Scaffold(topBar = {
-        TopAppBar(
-            title = {
-                Column {
-                    Text(me?.businessName ?: "Inventory", maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("Hello, ${me?.fullName?.substringBefore(' ') ?: ""}", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            },
-            actions = {
-                val unread = state.data?.unreadNotifications ?: 0
-                IconButton(onClick = onNotifications) {
-                    BadgedBox(badge = { if (unread > 0) Badge { Text(if (unread > 99) "99+" else unread.toString()) } }) {
-                        Icon(Icons.Default.Notifications, "Notifications")
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { BusinessSwitcher(onSwitch = vm::switchBusiness) },
+                actions = {
+                    val unread = state.data?.unreadNotifications ?: 0
+                    IconButton(onClick = onNotifications) {
+                        BadgedBox(badge = { if (unread > 0) Badge { Text(if (unread > 99) "99+" else unread.toString()) } }) {
+                            Icon(Icons.Default.Notifications, tr("Notifications"))
+                        }
                     }
-                }
-            },
-        )
-    }) { padding ->
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbar) },
+    ) { padding ->
         PullToRefreshBox(isRefreshing = state.loading && state.data != null, onRefresh = vm::load,
             modifier = Modifier.padding(padding)) {
             LoadableContent(state, vm::load) { d ->
-                LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    item {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            StatTile("Total products", d.activeProducts.toString(), Icons.Default.Inventory2,
-                                MaterialTheme.colorScheme.primary, Modifier.weight(1f)) { onOpenProducts(null) }
-                            StatTile("Total stock items", Fmt.qty(d.totalQuantity), Icons.Default.Layers,
-                                MaterialTheme.colorScheme.secondary, Modifier.weight(1f)) { onOpenProducts(null) }
-                        }
-                    }
-                    item {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            StatTile("Low stock", d.lowStockCount.toString(), Icons.Default.Warning, StatusColors.low,
-                                Modifier.weight(1f)) { onOpenProducts("LOW_STOCK") }
-                            StatTile("Out of stock", d.outOfStockCount.toString(), Icons.Default.RemoveShoppingCart,
-                                StatusColors.out, Modifier.weight(1f)) { onOpenProducts("OUT_OF_STOCK") }
-                        }
-                    }
-                    item {
-                        QuickActions(onAddProduct, onStockOperation, onRecordSale, onRecordPurchase, { onOpenProducts(null) },
-                            onReports, onStockActivity)
-                    }
-                    d.sales?.let { h -> item { SalesHighlightsCard(h, onReports, onOpenProduct) } }
-                    if (d.activeProducts == 0L) {
+                ResponsiveContent {
+                    LazyColumn(
+                        contentPadding = PaddingValues(start = Spacing.l, end = Spacing.l, bottom = Spacing.xl),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.l),
+                    ) {
                         item {
-                            SectionCard("Get started") {
-                                Text("1. Add your products with their opening stock.", style = MaterialTheme.typography.bodyMedium)
-                                Text("2. Add or reduce stock whenever goods come in or go out.", style = MaterialTheme.typography.bodyMedium)
-                                Text("3. Record sales to see your best and slowest sellers.", style = MaterialTheme.typography.bodyMedium)
-                                if (me?.can("PRODUCT_CREATE") == true) {
-                                    Button(onClick = onAddProduct, modifier = Modifier.fillMaxWidth()) { Text("Add your first product") }
+                            Text("Hello, ${me?.fullName?.substringBefore(' ') ?: ""}", style = MaterialTheme.typography.headlineSmall)
+                            Text("Here is how your stock looks today.", style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        item { KpiGrid(d, wide, onOpenProducts) }
+                        item {
+                            QuickActions(wide, onAddProduct, onStockOperation, onRecordSale, onRecordPurchase,
+                                { onOpenProducts(null) }, onReports, onStockActivity)
+                        }
+                        if (d.activeProducts == 0L) {
+                            item { GetStarted(onAddProduct) }
+                        }
+                        d.sales?.let { h -> item { SalesHighlightsCard(h, wide, onReports, onOpenProduct) } }
+
+                        val alerts = d.outOfStockItems + d.lowStockItems
+                        if (alerts.isNotEmpty()) {
+                            item {
+                                SectionCard("Needs attention", actionLabel = "View all", onAction = { onOpenProducts("LOW_STOCK") }) {
+                                    alerts.take(6).forEach { a ->
+                                        ProductLine(a.productName, "${Fmt.qty(a.available)} ${a.unit} available · min ${a.minStock}",
+                                            a.status) { onOpenProduct(a.productId) }
+                                    }
                                 }
                             }
                         }
-                    }
-                    val alerts = d.outOfStockItems + d.lowStockItems
-                    if (alerts.isNotEmpty()) {
-                        item {
-                            SectionCard("Needs attention") {
-                                alerts.take(8).forEach { a ->
-                                    Row(Modifier.fillMaxWidth().clickable { onOpenProduct(a.productId) }.padding(vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically) {
-                                        Column(Modifier.weight(1f)) {
-                                            Text(a.productName, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                            Text("${Fmt.qty(a.available)} ${a.unit} available · min ${a.minStock}",
-                                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (d.categories.any { it.quantity > 0 }) {
+                            item {
+                                SectionCard("Stock by category") {
+                                    HorizontalBarChart(
+                                        d.categories.sortedByDescending { it.quantity }.take(6).map {
+                                            BarItem(it.categoryName, it.quantity, "${Fmt.qty(it.quantity)} · ${it.productCount} products", it.categoryId)
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                        if (d.mostStocked.isNotEmpty()) {
+                            item {
+                                SectionCard("Most-stocked products") {
+                                    d.mostStocked.forEach { p ->
+                                        ProductLine(p.productName, "${Fmt.qty(p.available)} ${p.unit} available", p.status) {
+                                            onOpenProduct(p.productId)
                                         }
-                                        StatusChip(a.status)
                                     }
                                 }
                             }
                         }
-                    }
-                    if (d.recentlyUpdated.isNotEmpty()) {
-                        item {
-                            SectionCard("Recently updated products") {
-                                d.recentlyUpdated.forEach { r ->
-                                    Row(Modifier.fillMaxWidth().clickable { onOpenProduct(r.productId) }.padding(vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically) {
-                                        Column(Modifier.weight(1f)) {
-                                            Text(r.productName, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                            Text("${Fmt.qty(r.available)} ${r.unit} available · ${Fmt.dateTime(r.updatedAt)}",
-                                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        }
-                                        StatusChip(r.status)
+                        if (recentlyAdded.isNotEmpty()) {
+                            item {
+                                SectionCard("Recently added products", actionLabel = "View all", onAction = { onOpenProducts(null) }) {
+                                    recentlyAdded.forEach { p ->
+                                        ProductLine(p.name, "${Fmt.qty(p.stock.available)} ${p.unitCode} available" +
+                                            (p.categoryName?.let { " · $it" } ?: ""), p.status) { onOpenProduct(p.id) }
                                     }
                                 }
                             }
                         }
-                    }
-                    if (d.recentMovements.isNotEmpty()) {
-                        item {
-                            SectionCard("Recent stock activity") {
-                                d.recentMovements.forEach { m -> MovementRow(m) { onOpenProduct(m.productId) } }
-                            }
-                        }
-                    }
-                    if (d.categories.isNotEmpty()) {
-                        item {
-                            SectionCard("By category") {
-                                d.categories.forEach { c ->
-                                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                        Text(c.categoryName, Modifier.weight(1f))
-                                        Text("${c.productCount} products · ${Fmt.qty(c.quantity)}",
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                                    }
+                        if (d.recentMovements.isNotEmpty()) {
+                            item {
+                                SectionCard("Recent stock activity", actionLabel = "See all", onAction = onStockActivity) {
+                                    d.recentMovements.take(6).forEach { m -> MovementRow(m) { onOpenProduct(m.productId) } }
                                 }
                             }
                         }
-                    }
-                    if (d.warehouses.size > 1) {
-                        item {
-                            SectionCard("By warehouse") {
-                                d.warehouses.forEach { w ->
-                                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                        Text(w.warehouseName, Modifier.weight(1f))
-                                        Text("${w.productCount} products · ${Fmt.qty(w.quantity)}",
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                        if (d.warehouses.size > 1) {
+                            item {
+                                SectionCard("By warehouse") {
+                                    d.warehouses.forEach { w ->
+                                        InfoRow(w.warehouseName, "${w.productCount} products · ${Fmt.qty(w.quantity)}")
                                     }
                                 }
                             }
@@ -188,9 +199,95 @@ fun DashboardScreen(
     }
 }
 
+/** Business name in the top bar; opens a list of the member's businesses when there is more than one. */
+@Composable
+private fun BusinessSwitcher(onSwitch: (Long) -> Unit) {
+    val me = LocalMe.current
+    var open by remember { mutableStateOf(false) }
+    val others = me?.memberships.orEmpty()
+    Box {
+        Row(
+            Modifier.clip(MaterialTheme.shapes.small)
+                .then(if (others.size > 1) Modifier.clickable { open = true } else Modifier)
+                .padding(vertical = Spacing.xs, horizontal = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Avatar(me?.businessName ?: "", 36.dp)
+            Spacer(Modifier.width(Spacing.s))
+            Column(Modifier.weight(1f, fill = false)) {
+                androidx.compose.material3.Text(me?.businessName ?: "", style = MaterialTheme.typography.titleMedium, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis)
+                Text(Fmt.role(me?.role ?: ""), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (others.size > 1) Icon(Icons.Default.ExpandMore, tr("Switch"))
+        }
+        DropdownMenu(open, { open = false }) {
+            Text("Your businesses", Modifier.padding(horizontal = Spacing.l, vertical = Spacing.s),
+                style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            others.forEach { m ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            androidx.compose.material3.Text(m.businessName, fontWeight = FontWeight.Medium)
+                            Text(listOfNotNull(m.businessType, Fmt.role(m.role)).joinToString(" · "),
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    },
+                    leadingIcon = { Avatar(m.businessName, 32.dp) },
+                    trailingIcon = { if (m.businessId == me?.businessId) Icon(Icons.Default.Check, null) },
+                    onClick = {
+                        open = false
+                        if (m.businessId != me?.businessId) onSwitch(m.businessId)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun KpiGrid(d: Dashboard, wide: Boolean, onOpenProducts: (String?) -> Unit) {
+    val c = MaterialTheme.appColors
+    val tiles = listOf<@Composable (Modifier) -> Unit>(
+        { m -> StatTile("Total products", d.activeProducts.toString(), Icons.Default.Inventory2, MaterialTheme.colorScheme.primary, m) { onOpenProducts(null) } },
+        { m -> StatTile("Total stock quantity", Fmt.qty(d.totalQuantity), Icons.Default.Layers, MaterialTheme.colorScheme.tertiary, m) { onOpenProducts(null) } },
+        { m -> StatTile("Low stock", d.lowStockCount.toString(), Icons.Default.WarningAmber, c.warning, m) { onOpenProducts("LOW_STOCK") } },
+        { m -> StatTile("Out of stock", d.outOfStockCount.toString(), Icons.Default.RemoveShoppingCart, c.danger, m) { onOpenProducts("OUT_OF_STOCK") } },
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.m)) {
+        tiles.chunked(if (wide) 4 else 2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.m)) { row.forEach { it(Modifier.weight(1f)) } }
+        }
+    }
+}
+
+@Composable
+private fun GetStarted(onAddProduct: () -> Unit) {
+    val me = LocalMe.current
+    SectionCard("Get started") {
+        listOf(
+            Icons.Default.AddBox to "1. Add your products with their opening stock.",
+            Icons.Default.SwapVert to "2. Add or reduce stock whenever goods come in or go out.",
+            Icons.Default.Insights to "3. Record sales to see your best and slowest sellers.",
+        ).forEach { (icon, text) ->
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = Spacing.xs)) {
+                IconBadge(icon, MaterialTheme.colorScheme.primary, 32.dp)
+                Spacer(Modifier.width(Spacing.m))
+                Text(text, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        if (me?.can("PRODUCT_CREATE") == true) {
+            Spacer(Modifier.height(Spacing.xs))
+            PrimaryButton("Add your first product", onAddProduct, icon = Icons.Default.Add)
+        }
+    }
+}
+
 /** The most common tasks, filtered by what the member is allowed to do. */
 @Composable
 private fun QuickActions(
+    wide: Boolean,
     onAddProduct: () -> Unit,
     onStockOperation: (String) -> Unit,
     onRecordSale: () -> Unit,
@@ -200,22 +297,26 @@ private fun QuickActions(
     onStockActivity: () -> Unit,
 ) {
     val me = LocalMe.current
-    val actions = buildList<Triple<String, androidx.compose.ui.graphics.vector.ImageVector, () -> Unit>> {
-        if (me?.can("PRODUCT_CREATE") == true) add(Triple("Add Product", Icons.Default.AddBox, onAddProduct))
-        if (me?.can("STOCK_ADD") == true) add(Triple("Add Stock", Icons.Default.AddCircleOutline) { onStockOperation("ADD") })
-        if (me?.can("STOCK_REDUCE") == true) add(Triple("Reduce Stock", Icons.Default.RemoveCircleOutline) { onStockOperation("REDUCE") })
-        if (me?.can("PURCHASE_MANAGE") == true) add(Triple("Record Purchase", Icons.Default.LocalShipping, onRecordPurchase))
-        add(Triple("View Inventory", Icons.Default.Inventory2, onInventory))
-        add(Triple("Stock Activity", Icons.Default.History, onStockActivity))
-        if (me?.can("REPORT_VIEW") == true || me?.can("ANALYTICS_VIEW") == true)
-            add(Triple("View Analytics", Icons.Default.Insights, onReports))
+    val c = MaterialTheme.appColors
+    val primary = MaterialTheme.colorScheme.primary
+    data class Action(val label: String, val icon: ImageVector, val tint: Color, val onClick: () -> Unit)
+    val actions = buildList {
+        if (me?.can("PRODUCT_CREATE") == true) add(Action("Add Product", Icons.Default.AddBox, primary, onAddProduct))
+        if (me?.can("STOCK_ADD") == true) add(Action("Add Stock", Icons.Default.AddCircleOutline, c.success) { onStockOperation("ADD") })
+        if (me?.can("STOCK_REDUCE") == true) add(Action("Reduce Stock", Icons.Default.RemoveCircleOutline, c.warning) { onStockOperation("REDUCE") })
+        add(Action("View Inventory", Icons.Default.Inventory2, primary, onInventory))
+        if (me?.can("REPORT_VIEW") == true || me?.can("ANALYTICS_VIEW") == true) add(Action("View Reports", Icons.Default.Insights, primary, onReports))
+        if (me?.can("SALE_RECORD") == true) add(Action("Record Sale", Icons.Default.PointOfSale, MaterialTheme.colorScheme.tertiary, onRecordSale))
+        if (me?.can("PURCHASE_MANAGE") == true) add(Action("Record Purchase", Icons.Default.LocalShipping, MaterialTheme.colorScheme.tertiary, onRecordPurchase))
+        add(Action("Stock Activity", Icons.Default.History, primary, onStockActivity))
     }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Quick actions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        actions.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { (label, icon, action) -> ActionTile(label, icon, action, Modifier.weight(1f)) }
-                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+    val perRow = if (wide) 4 else 3
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
+        SectionHeader("Quick actions", modifier = Modifier)
+        actions.chunked(perRow).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                row.forEach { a -> ActionTile(a.label, a.icon, a.onClick, Modifier.weight(1f), tint = a.tint) }
+                repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
@@ -223,30 +324,29 @@ private fun QuickActions(
 
 /** Sales, profit and stock value for members who can view analytics. */
 @Composable
-private fun SalesHighlightsCard(h: SalesHighlights, onAnalytics: () -> Unit, onOpenProduct: (Long) -> Unit) {
+private fun SalesHighlightsCard(h: SalesHighlights, wide: Boolean, onAnalytics: () -> Unit, onOpenProduct: (Long) -> Unit) {
     val cur = h.today.currencyCode
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatTile("Today's sales", Fmt.money(h.today.revenue, cur), Icons.Default.PointOfSale,
-                MaterialTheme.colorScheme.primary, Modifier.weight(1f), onAnalytics)
-            StatTile("This month's sales", Fmt.money(h.month.revenue, cur), Icons.Default.CalendarMonth,
-                MaterialTheme.colorScheme.primary, Modifier.weight(1f), onAnalytics)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatTile("Units sold this month", Fmt.qty(h.month.units), Icons.Default.ShoppingBag,
-                MaterialTheme.colorScheme.secondary, Modifier.weight(1f), onAnalytics)
-            StatTile("Gross profit this month", h.month.grossProfit?.let { Fmt.money(it, cur) } ?: "Unavailable",
-                Icons.AutoMirrored.Filled.TrendingUp, StatusColors.ok, Modifier.weight(1f), onAnalytics)
+    val tiles = listOf<@Composable (Modifier) -> Unit>(
+        { m -> StatTile("Today's sales", Fmt.money(h.today.revenue, cur), Icons.Default.PointOfSale, MaterialTheme.colorScheme.primary, m, onClick = onAnalytics) },
+        { m -> StatTile("This month's sales", Fmt.money(h.month.revenue, cur), Icons.Default.CalendarMonth, MaterialTheme.colorScheme.primary, m, onClick = onAnalytics) },
+        { m -> StatTile("Units sold this month", Fmt.qty(h.month.units), Icons.Default.ShoppingBag, MaterialTheme.colorScheme.tertiary, m, onClick = onAnalytics) },
+        { m -> StatTile("Gross profit this month", h.month.grossProfit?.let { Fmt.money(it, cur) } ?: "Unavailable",
+            Icons.AutoMirrored.Filled.TrendingUp, StatusColors.ok, m, onClick = onAnalytics) },
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.m)) {
+        SectionHeader("Sales and profit", "Analytics", onAnalytics, Modifier)
+        tiles.chunked(if (wide) 4 else 2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.m)) { row.forEach { it(Modifier.weight(1f)) } }
         }
         SectionCard("This month") {
             h.monthBestSeller?.let { b ->
-                Row(Modifier.fillMaxWidth().clickable { onOpenProduct(b.productId) }.padding(vertical = 4.dp)) {
+                Row(Modifier.fillMaxWidth().clickable { onOpenProduct(b.productId) }.padding(vertical = Spacing.xs)) {
                     Text("Best seller", Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("${b.name} · ${Fmt.qty(b.units)} ${b.unit}", fontWeight = FontWeight.Medium)
                 }
             } ?: Text("No sales yet this month. Use Record Sale to add one.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             h.monthLowestSeller?.let { l ->
-                Row(Modifier.fillMaxWidth().clickable { onOpenProduct(l.productId) }.padding(vertical = 4.dp)) {
+                Row(Modifier.fillMaxWidth().clickable { onOpenProduct(l.productId) }.padding(vertical = Spacing.xs)) {
                     Text("Lowest seller", Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("${l.name} · ${Fmt.qty(l.units)} ${l.unit}", fontWeight = FontWeight.Medium)
                 }
@@ -259,32 +359,64 @@ private fun SalesHighlightsCard(h: SalesHighlights, onAnalytics: () -> Unit, onO
     }
 }
 
+/** One product in a dashboard list: name, detail and status. */
 @Composable
-fun MovementRow(m: Movement, onClick: (() -> Unit)? = null) {
+private fun ProductLine(name: String, detail: String, status: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = 6.dp),
+        Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).clickable(onClick = onClick).padding(vertical = Spacing.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        IconBadge(stockStatusIcon(status), statusColor(status), 36.dp)
+        Spacer(Modifier.width(Spacing.m))
+        Column(Modifier.weight(1f)) {
+            androidx.compose.material3.Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                overflow = TextOverflow.Ellipsis)
+        }
+        Spacer(Modifier.width(Spacing.s))
+        StatusChip(status)
+    }
+}
+
+/** One stock movement: direction icon, product, what happened, who and when, and the quantity change. */
+@Composable
+fun MovementRow(m: Movement, onClick: (() -> Unit)? = null) {
+    val c = MaterialTheme.appColors
+    val (icon, tint) = when {
+        m.type in setOf("ADJUST", "COUNT_ADJUST") -> Icons.Default.Tune to MaterialTheme.colorScheme.primary
+        m.type in setOf("RESERVE", "RELEASE") -> Icons.Default.Bookmark to MaterialTheme.colorScheme.tertiary
+        m.quantity > 0 -> Icons.Default.SouthWest to c.success
+        m.quantity < 0 -> Icons.Default.NorthEast to c.danger
+        else -> Icons.Default.SwapHoriz to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Row(
+        Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(vertical = Spacing.s),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconBadge(icon, tint, 36.dp)
+        Spacer(Modifier.width(Spacing.m))
         Column(Modifier.weight(1f)) {
             val name = if (m.variantName == m.productName) m.productName else "${m.productName} · ${m.variantName}"
-            Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
-            val detail = buildString {
-                append(Fmt.movement(m.type))
-                append(" · ")
-                append(m.warehouseName)
-                m.lotNumber?.let { append(" · lot $it") }
-                m.reason?.takeIf { it.isNotBlank() && it != "Opening stock" }?.let { append(" · $it") }
-            }
-            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("${m.actorName} · ${Fmt.dateTime(m.createdAt)}", style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            androidx.compose.material3.Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
+            val detail = buildList {
+                add(tr(Fmt.movement(m.type)))
+                add(m.warehouseName)
+                m.lotNumber?.let { add(tr("lot $it")) }
+                m.reason?.takeIf { it.isNotBlank() && it != "Opening stock" }?.let { add(tr(it)) }
+            }.joinToString(" · ")
+            androidx.compose.material3.Text(detail, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            androidx.compose.material3.Text("${m.actorName} · ${Fmt.dateTime(m.createdAt)}", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+        Spacer(Modifier.width(Spacing.s))
         Column(horizontalAlignment = Alignment.End) {
-            Text("${Fmt.signedQty(m.quantity)} ${m.unitCode}", color = movementColor(m.quantity), fontWeight = FontWeight.SemiBold)
-            Text("${Fmt.qty(m.quantityBefore)} → ${Fmt.qty(m.quantityAfter)}", style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Pill("${Fmt.signedQty(m.quantity)} ${m.unitCode}", movementColor(m.quantity))
+            Spacer(Modifier.height(2.dp))
+            androidx.compose.material3.Text("${Fmt.qty(m.quantityBefore)} → ${Fmt.qty(m.quantityAfter)}",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

@@ -3,7 +3,7 @@ package com.b2binventory.app.ui.products
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.automirrored.filled.Sort
 import com.b2binventory.app.ui.common.Text
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -19,6 +19,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -149,17 +150,10 @@ fun ProductListScreen(
             }
         },
     ) { padding ->
-        Column(Modifier.padding(padding)) {
-            OutlinedTextField(
-                value = query.q, onValueChange = { v -> vm.setQuery { it.copy(q = v) } },
-                placeholder = { Text("Search name, brand, SKU or barcode") },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
-                trailingIcon = {
-                    if (query.q.isNotEmpty()) IconButton(onClick = { vm.setQuery { it.copy(q = "") } }) { Icon(Icons.Default.Clear, "Clear") }
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+        ResponsiveContent(Modifier.padding(padding)) {
+        Column {
+            SearchField(query.q, { v -> vm.setQuery { it.copy(q = v) } }, "Search name, brand, SKU or barcode",
+                Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
             // Stock status as one-tap chips with icon and text (not colour alone).
             LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(listOf<String?>(null, "IN_STOCK", "LOW_STOCK", "OUT_OF_STOCK")) { s ->
@@ -167,7 +161,7 @@ fun ProductListScreen(
                         selected = query.status == s,
                         onClick = { vm.setQuery { it.copy(status = s) } },
                         label = { Text(s?.let(Fmt::status) ?: "All") },
-                        leadingIcon = s?.let { st -> { Icon(statusIcon(st), null, Modifier.size(18.dp), tint = statusColor(st)) } },
+                        leadingIcon = s?.let { st -> { Icon(stockStatusIcon(st), null, Modifier.size(18.dp), tint = statusColor(st)) } },
                     )
                 }
             }
@@ -176,7 +170,7 @@ fun ProductListScreen(
                 item { SortFilter(query.sort) { s -> vm.setQuery { it.copy(sort = s) } } }
                 item {
                     FilterChip(selected = query.archived, onClick = { vm.setQuery { it.copy(archived = !it.archived) } },
-                        label = { Text("Archived") })
+                        label = { Text("Archived") }, leadingIcon = { Icon(Icons.Default.Archive, null, Modifier.size(18.dp)) })
                 }
             }
             PullToRefreshBox(isRefreshing = state.loading && state.items.isNotEmpty(), onRefresh = { vm.refresh() }) {
@@ -185,15 +179,20 @@ fun ProductListScreen(
                     state.error != null && state.items.isEmpty() -> ErrorState(state.error!!, { vm.refresh() })
                     state.items.isEmpty() && query.copy(sort = "name") == ProductQuery() -> EmptyState(
                         "No products yet", "Add your first product to start tracking stock.",
-                        action = if (me?.can("PRODUCT_CREATE") == true) { { Button(onClick = onAdd) { Text("Add Product") } } } else null,
+                        action = if (me?.can("PRODUCT_CREATE") == true) { { Button(onClick = onAdd) {
+                            Icon(Icons.Default.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Add Product") } } } else null,
                     )
                     state.items.isEmpty() -> EmptyState(
                         "No matching products", "Try a different search or filter.", icon = Icons.Default.SearchOff,
                         action = { OutlinedButton(onClick = { vm.setQuery { ProductQuery(sort = it.sort) } }) { Text("Clear search and filters") } },
                     )
-                    else -> LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 88.dp)) {
+                    else -> LazyColumn(
+                        state = listState,
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (detailed) 10.dp else 6.dp),
+                    ) {
                         item {
-                            Text("${state.total} products", Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            Text("${state.total} products", Modifier.padding(vertical = 4.dp),
                                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         items(state.items, key = { it.id }) { p ->
@@ -205,13 +204,8 @@ fun ProductListScreen(
                 }
             }
         }
+        }
     }
-}
-
-private fun statusIcon(status: String) = when (status) {
-    "OUT_OF_STOCK" -> Icons.Default.RemoveCircleOutline
-    "LOW_STOCK" -> Icons.Default.WarningAmber
-    else -> Icons.Default.CheckCircleOutline
 }
 
 @Composable
@@ -248,63 +242,75 @@ private fun CategoryFilter(categories: List<CategoryNode>, selected: Long?, onSe
 private fun ProductRow(p: ProductSummary, imageUrl: String?, detailed: Boolean, onClick: () -> Unit,
                        onStock: ((String) -> Unit)?) {
     val me = LocalMe.current
-    if (!detailed) {
-        // Compact: one line per product with the essentials.
-        Row(Modifier.fillMaxWidth().clickableRow(onClick).padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            Text(p.name, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
-            Text("${Fmt.qty(p.stock.available)} ${p.unitCode}", fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.width(8.dp))
-            StatusChip(p.status)
-        }
-        HorizontalDivider()
-        return
-    }
-    ListItem(
-        headlineContent = { Text(p.name, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium) },
-        supportingContent = {
-            Column {
-                Text(listOfNotNull(p.sku?.let { "SKU $it" }, p.categoryName, p.brand).joinToString(" · ").ifEmpty { "No SKU or category" },
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (onStock != null) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        if (me?.can("STOCK_ADD") == true) {
-                            TextButton(onClick = { onStock("ADD") }, contentPadding = PaddingValues(horizontal = 8.dp)) {
-                                Icon(Icons.Default.Add, null, Modifier.size(18.dp)); Text("Add")
-                            }
+    val tone = statusColor(p.status)
+    AppCard(onClick = onClick) {
+        // A coloured stripe on the leading edge, always paired with the status pill's icon and text.
+        Row(Modifier.height(IntrinsicSize.Min)) {
+            Box(Modifier.width(4.dp).fillMaxHeight().background(tone))
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = if (detailed) 12.dp else 10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (detailed) {
+                        ProductThumb(imageUrl)
+                        Spacer(Modifier.width(12.dp))
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(p.name, maxLines = if (detailed) 2 else 1, overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.titleSmall)
+                        if (detailed) {
+                            Text(listOfNotNull(p.sku?.let { "SKU $it" }, p.categoryName, p.brand).joinToString(" · ")
+                                .ifEmpty { "No SKU or category" },
+                                maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else {
+                            Spacer(Modifier.height(4.dp))
+                            StatusChip(p.status)
                         }
-                        if (me?.can("STOCK_REDUCE") == true) {
-                            TextButton(onClick = { onStock("REDUCE") }, contentPadding = PaddingValues(horizontal = 8.dp)) {
-                                Icon(Icons.Default.Remove, null, Modifier.size(18.dp)); Text("Reduce")
-                            }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Column(horizontalAlignment = Alignment.End) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(Fmt.qty(p.stock.available), style = MaterialTheme.typography.titleLarge, color = tone)
+                            Spacer(Modifier.width(3.dp))
+                            Text(p.unitCode, style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 3.dp))
                         }
-                        if (me?.can("SALE_RECORD") == true) {
-                            TextButton(onClick = { onStock("SALE") }, contentPadding = PaddingValues(horizontal = 8.dp)) {
-                                Icon(Icons.Default.PointOfSale, null, Modifier.size(18.dp)); Text("Sell")
-                            }
+                        if (detailed) StatusChip(p.status)
+                    }
+                }
+                if (detailed && onStock != null) {
+                    val canAdd = me?.can("STOCK_ADD") == true
+                    val canReduce = me?.can("STOCK_REDUCE") == true
+                    val canSell = me?.can("SALE_RECORD") == true
+                    if (canAdd || canReduce || canSell) {
+                        HorizontalDivider(Modifier.padding(top = 10.dp, bottom = 2.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            if (canAdd) RowAction("Add", Icons.Default.Add) { onStock("ADD") }
+                            if (canReduce) RowAction("Reduce", Icons.Default.Remove) { onStock("REDUCE") }
+                            if (canSell) RowAction("Sell", Icons.Default.PointOfSale) { onStock("SALE") }
                         }
                     }
                 }
             }
-        },
-        leadingContent = {
-            if (imageUrl != null) {
-                AsyncImage(imageUrl, null, Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
-            } else {
-                Surface(Modifier.size(48.dp), shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Inventory2, null) }
-                }
-            }
-        },
-        trailingContent = {
-            Column(horizontalAlignment = Alignment.End) {
-                Text("${Fmt.qty(p.stock.available)} ${p.unitCode}", fontWeight = FontWeight.SemiBold)
-                StatusChip(p.status)
-            }
-        },
-        modifier = Modifier.then(Modifier.clickableRow(onClick)),
-    )
-    HorizontalDivider()
+        }
+    }
 }
 
-private fun Modifier.clickableRow(onClick: () -> Unit) = this.clickable(onClick = onClick)
+@Composable
+private fun RowAction(label: String, icon: ImageVector, onClick: () -> Unit) {
+    TextButton(onClick = onClick, contentPadding = PaddingValues(horizontal = 10.dp)) {
+        Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text(label)
+    }
+}
+
+@Composable
+private fun ProductThumb(imageUrl: String?) {
+    if (imageUrl != null) {
+        AsyncImage(imageUrl, null, Modifier.size(52.dp).clip(RoundedCornerShape(10.dp)), contentScale = ContentScale.Crop)
+    } else {
+        Surface(Modifier.size(52.dp), shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.Inventory2, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}

@@ -388,7 +388,7 @@ private fun LineCard(vm: RecordSaleViewModel, line: CartLine, settings: Business
     val qty = Calc.dec(line.quantity) ?: BigDecimal.ZERO
     val remaining = available.subtract(qty)
     val f = vm.figures(line)
-    ElevatedCard(Modifier.fillMaxWidth()) {
+    AppCard {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
