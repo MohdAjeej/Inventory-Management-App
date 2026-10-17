@@ -39,7 +39,15 @@ public class StockService {
     record Change(MovementType type, ProductVariant variant, Warehouse warehouse, BigDecimal quantity,
                   String reason, String notes, Long batchId, String lotNumber, LocalDate expiryDate,
                   List<String> serials, boolean fromDamaged, UUID transferGroupId, Long stockCountId,
-                  UUID clientRequestId) {
+                  UUID clientRequestId, boolean system) {
+
+        Change(MovementType type, ProductVariant variant, Warehouse warehouse, BigDecimal quantity,
+               String reason, String notes, Long batchId, String lotNumber, LocalDate expiryDate,
+               List<String> serials, boolean fromDamaged, UUID transferGroupId, Long stockCountId,
+               UUID clientRequestId) {
+            this(type, variant, warehouse, quantity, reason, notes, batchId, lotNumber, expiryDate, serials, fromDamaged,
+                    transferGroupId, stockCountId, clientRequestId, false);
+        }
     }
 
     private final StockBalanceRepository balances;
@@ -157,7 +165,24 @@ public class StockService {
     }
 
     private static final Set<MovementType> DOCUMENT_TYPES = EnumSet.of(MovementType.SALE, MovementType.SALE_CANCEL,
-            MovementType.RETURN_IN, MovementType.PURCHASE, MovementType.PURCHASE_CANCEL);
+            MovementType.RETURN_IN, MovementType.PURCHASE, MovementType.PURCHASE_CANCEL, MovementType.PURCHASE_RETURN);
+
+    /**
+     * Holds stock for a trade document (an invoice waiting for the buyer, or a return waiting for the seller),
+     * so it cannot be sold twice. Works whether or not the business tracks reserved stock by hand.
+     */
+    @Transactional
+    public StockMovement documentReserve(ProductVariant variant, Warehouse warehouse, BigDecimal quantity, String reason) {
+        return apply(new Change(MovementType.RESERVE, variant, warehouse, quantity, reason, null, null, null, null, null,
+                false, null, null, null, true));
+    }
+
+    /** Releases stock held by {@link #documentReserve}. */
+    @Transactional
+    public StockMovement documentRelease(ProductVariant variant, Warehouse warehouse, BigDecimal quantity, String reason) {
+        return apply(new Change(MovementType.RELEASE, variant, warehouse, quantity, reason, null, null, null, null, null,
+                false, null, null, null, true));
+    }
 
     /** Sets a balance to a counted quantity; returns null when no change was needed. */
     @Transactional
@@ -238,7 +263,7 @@ public class StockService {
 
         boolean damagedReserved = type == MovementType.DAMAGE || type == MovementType.RESERVE
                 || type == MovementType.RELEASE || c.fromDamaged();
-        if (damagedReserved && !settings.isTrackDamagedReserved()) {
+        if (damagedReserved && !settings.isTrackDamagedReserved() && !c.system()) {
             throw new BadRequestException("Damaged and reserved stock tracking is turned off in business settings");
         }
 
@@ -261,7 +286,7 @@ public class StockService {
                 signed = q;
                 balance.setOnHand(after);
             }
-            case REDUCE, TRANSFER_OUT, SALE, PURCHASE_CANCEL -> {
+            case REDUCE, TRANSFER_OUT, SALE, PURCHASE_CANCEL, PURCHASE_RETURN -> {
                 before = balance.getOnHand();
                 if (c.fromDamaged()) {
                     if (balance.getDamaged().compareTo(q) < 0) {

@@ -50,7 +50,8 @@ class NotificationsViewModel(private val api: ApiService) : ViewModel() {
 }
 
 @Composable
-fun NotificationsScreen(onBack: () -> Unit, onOpenProduct: (Long) -> Unit) {
+fun NotificationsScreen(onBack: () -> Unit, onOpenProduct: (Long) -> Unit, onOpenTradeInvoice: (Long) -> Unit = {},
+                        onOpenNetwork: () -> Unit = {}) {
     val vm = appViewModel { c, _ -> NotificationsViewModel(c.api) }
     val state by vm.state.collectAsStateWithLifecycle()
     Scaffold(topBar = {
@@ -68,7 +69,9 @@ fun NotificationsScreen(onBack: () -> Unit, onOpenProduct: (Long) -> Unit) {
                             val icon = when (n.type) {
                                 "OUT_OF_STOCK" -> Icons.Default.RemoveShoppingCart
                                 "LOW_STOCK" -> Icons.Default.Warning
-                                else -> Icons.Default.Groups
+                                "TRADE_INVOICE_RECEIVED" -> Icons.Default.MarkEmailUnread
+                                "CONNECTION_REQUEST", "CONNECTION_ACCEPTED" -> Icons.Default.Hub
+                                else -> if (n.type.startsWith("TRADE_")) Icons.Default.ReceiptLong else Icons.Default.Groups
                             }
                             val tint = when (n.type) {
                                 "OUT_OF_STOCK" -> StatusColors.out
@@ -76,6 +79,8 @@ fun NotificationsScreen(onBack: () -> Unit, onOpenProduct: (Long) -> Unit) {
                                 else -> MaterialTheme.colorScheme.primary
                             }
                             val productId = n.payload["productId"]?.jsonPrimitive?.longOrNull
+                            val tradeInvoiceId = n.payload["tradeInvoiceId"]?.jsonPrimitive?.longOrNull
+                            val connection = n.type.startsWith("CONNECTION_")
                             ListItem(
                                 headlineContent = { Text(n.title, fontWeight = if (n.read) FontWeight.Normal else FontWeight.Bold) },
                                 supportingContent = {
@@ -88,7 +93,11 @@ fun NotificationsScreen(onBack: () -> Unit, onOpenProduct: (Long) -> Unit) {
                                 trailingContent = { if (!n.read) Badge() },
                                 modifier = Modifier.clickableItem {
                                     vm.markRead(n)
-                                    if (productId != null) onOpenProduct(productId)
+                                    when {
+                                        tradeInvoiceId != null -> onOpenTradeInvoice(tradeInvoiceId)
+                                        connection -> onOpenNetwork()
+                                        productId != null -> onOpenProduct(productId)
+                                    }
                                 },
                             )
                             HorizontalDivider()

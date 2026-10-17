@@ -126,6 +126,7 @@ fun BusinessSettingsScreen(onBack: () -> Unit) {
             var state by remember(b) { mutableStateOf(b.state ?: "") }
             var country by remember(b) { mutableStateOf(b.country ?: "") }
             var postal by remember(b) { mutableStateOf(b.postalCode ?: "") }
+            var taxId by remember(b) { mutableStateOf(b.taxId ?: "") }
             FormColumn(padding) {
                 if (!canEdit) {
                     Text("Only members with the business settings permission can change these details.",
@@ -158,10 +159,14 @@ fun BusinessSettingsScreen(onBack: () -> Unit) {
                     FormField(state, { state = it }, "State / region", enabled = canEdit)
                     FormField(country, { country = it }, "Country", enabled = canEdit)
                     FormField(postal, { postal = it }, "Postal code", enabled = canEdit)
+                    FormField(taxId, { taxId = it }, "Tax registration number", enabled = canEdit, error = e["taxId"],
+                        placeholder = "e.g. GSTIN", supporting = "Printed on invoices you send to other businesses")
+                    b.businessCode?.let { InfoRow("Business code", it, emphasis = true) }
                     if (canEdit) {
                         PrimaryButton("Save business details", {
                             vm.saveBusiness(UpdateBusinessRequest(name, type.blankToNull(), email.blankToNull(), phone.blankToNull(),
-                                address.blankToNull(), city.blankToNull(), state.blankToNull(), country.blankToNull(), postal.blankToNull()))
+                                address.blankToNull(), city.blankToNull(), state.blankToNull(), country.blankToNull(), postal.blankToNull(),
+                                taxId.trim()))
                         }, loading = form.submitting)
                     }
                 }

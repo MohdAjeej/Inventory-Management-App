@@ -95,6 +95,7 @@ object Fmt {
         "RETURN_IN" -> "Customer return"
         "PURCHASE" -> "Purchased"
         "PURCHASE_CANCEL" -> "Purchase cancelled"
+        "PURCHASE_RETURN" -> "Returned to supplier"
         else -> type
     }
 

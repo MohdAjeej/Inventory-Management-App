@@ -16,7 +16,9 @@ public final class BusinessDtos {
 
     public record BusinessResponse(
             Long id, String name, String businessType, String logoUrl, String email, String phone,
-            String address, String city, String state, String country, String postalCode, Instant createdAt) {
+            String address, String city, String state, String country, String postalCode, Instant createdAt,
+            /* public code other businesses can search for, and the tax registration number */
+            String businessCode, String taxId) {
     }
 
     public record UpdateBusinessRequest(
@@ -28,7 +30,9 @@ public final class BusinessDtos {
             @Size(max = 120) String city,
             @Size(max = 120) String state,
             @Size(max = 120) String country,
-            @Size(max = 30) String postalCode) {
+            @Size(max = 30) String postalCode,
+            /* tax registration such as GSTIN; null leaves it unchanged, blank clears it */
+            @Size(max = 50) String taxId) {
     }
 
     public record SettingsResponse(

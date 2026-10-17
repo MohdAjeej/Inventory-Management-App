@@ -236,4 +236,39 @@ interface ApiService {
     @GET("api/notifications/unread-count") suspend fun unreadCount(): UnreadCount
     @POST("api/notifications/{id}/read") suspend fun markRead(@Path("id") id: Long): Response<Unit>
     @POST("api/notifications/read-all") suspend fun markAllRead(): Response<Unit>
+
+    // ---- business network
+    @GET("api/network/search") suspend fun searchBusinesses(@Query("q") q: String): List<BusinessSearchResult>
+    @GET("api/network/me") suspend fun myBusinessCode(): MyBusinessCode
+    @PUT("api/network/me/discoverable") suspend fun setDiscoverable(@Body body: DiscoverableBody): MyBusinessCode
+    @GET("api/network/connections") suspend fun connections(@Query("status") status: String? = null): List<Connection>
+    @POST("api/network/connections") suspend fun requestConnection(@Body body: ConnectionRequestBody): Connection
+    @POST("api/network/connections/{id}/accept") suspend fun acceptConnection(@Path("id") id: Long): Connection
+    @POST("api/network/connections/{id}/reject") suspend fun rejectConnection(@Path("id") id: Long): Connection
+    @POST("api/network/connections/{id}/remove") suspend fun removeConnection(@Path("id") id: Long): Connection
+
+    // ---- business (trade) invoices
+    @GET("api/trade/invoices") suspend fun tradeInvoices(
+        @Query("direction") direction: String,
+        @Query("status") status: String? = null,
+        @Query("q") q: String? = null,
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 50,
+    ): Page<TradeInvoiceSummary>
+    @POST("api/trade/invoices") suspend fun createTradeInvoice(@Body body: TradeInvoiceBody): TradeInvoice
+    @GET("api/trade/invoices/{id}") suspend fun tradeInvoice(@Path("id") id: Long): TradeInvoice
+    @PUT("api/trade/invoices/{id}") suspend fun updateTradeInvoice(@Path("id") id: Long, @Body body: TradeInvoiceBody): TradeInvoice
+    @DELETE("api/trade/invoices/{id}") suspend fun deleteTradeInvoice(@Path("id") id: Long): Response<Unit>
+    @POST("api/trade/invoices/{id}/send") suspend fun sendTradeInvoice(@Path("id") id: Long): TradeInvoice
+    @POST("api/trade/invoices/{id}/cancel") suspend fun cancelTradeInvoice(@Path("id") id: Long, @Body body: ReasonBody): TradeInvoice
+    @POST("api/trade/invoices/{id}/reject") suspend fun rejectTradeInvoice(@Path("id") id: Long, @Body body: ReasonBody): TradeInvoice
+    @GET("api/trade/invoices/{id}/preview") suspend fun receivePreview(@Path("id") id: Long, @Query("warehouseId") warehouseId: Long? = null): ReceivePreview
+    @POST("api/trade/invoices/{id}/approve") suspend fun approveTradeInvoice(@Path("id") id: Long, @Body body: ApproveBody): TradeInvoice
+    @POST("api/trade/invoices/{id}/returns") suspend fun requestTradeReturn(@Path("id") id: Long, @Body body: TradeReturnBody): TradeInvoice
+    @POST("api/trade/returns/{id}/accept") suspend fun acceptTradeReturn(@Path("id") id: Long, @Body body: RespondBody): TradeInvoice
+    @POST("api/trade/returns/{id}/reject") suspend fun rejectTradeReturn(@Path("id") id: Long, @Body body: RespondBody): TradeInvoice
+    @POST("api/trade/returns/{id}/cancel") suspend fun cancelTradeReturn(@Path("id") id: Long): TradeInvoice
+    @GET("api/trade/mappings") suspend fun productLinks(): List<ProductLink>
+    @DELETE("api/trade/mappings/{id}") suspend fun deleteProductLink(@Path("id") id: Long): Response<Unit>
+    @GET("api/trade/summary") suspend fun tradeSummary(): TradeSummary
 }

@@ -109,6 +109,7 @@ Transfer request: `{variantId, fromWarehouseId, toWarehouseId, quantity, batchId
 | GET | `/api/dashboard` (includes `sales`: today's and this month's sales and profit, best and lowest seller, stock value; only for ANALYTICS_VIEW) | PRODUCT_VIEW |
 | GET | `/api/reports/inventory?warehouseId&categoryId&q&status` | REPORT_VIEW |
 | GET | `/api/reports/low-stock?warehouseId&categoryId` | REPORT_VIEW |
+| GET | `/api/reports/movement-summary?warehouseId&from&to` (default last 30 days): stock in/out totals, `byType`, `fastMoving` and `slowMoving` products | REPORT_VIEW |
 | GET | `/api/reports/movements?warehouseId&productId&types&actorId&from&to` (ISO dates) | REPORT_VIEW |
 | GET | `/api/reports/{inventory|low-stock|movements}/export?format=csv|xlsx&…same filters` | REPORT_EXPORT |
 | GET | `/api/notifications?unreadOnly` · `/unread-count` · POST `/{id}/read` · `/read-all` | signed in |
@@ -206,3 +207,40 @@ Purchase request:
 | GET | `/api/analytics/products/export?format=csv|xlsx&…` | Product ranking file (also needs REPORT_EXPORT) |
 
 A missing `growthPercent` means the previous period has nothing to compare with ("Insufficient data").
+
+## Business network (`/api/network`)
+
+Connections let two businesses send each other invoices. Search returns only name, type, city and business code.
+
+| Method | Path | Permission |
+|---|---|---|
+| GET | `/api/network/search?q` (name contains, exact business code, or exact phone; at least 2 characters; max 20) | SALE_RECORD, PURCHASE_MANAGE or BUSINESS_SETTINGS |
+| GET | `/api/network/me` (your business code) · PUT `/me/discoverable {discoverable}` | signed in · BUSINESS_SETTINGS |
+| GET | `/api/network/connections?status` (default: pending and accepted) | as search |
+| POST | `/api/network/connections {businessId, message}` (asking a business that already asked you accepts their request) | BUSINESS_SETTINGS |
+| POST | `/api/network/connections/{id}/accept` · `/reject` (receiver only) · `/remove` | BUSINESS_SETTINGS |
+
+## Business invoices (`/api/trade`)
+
+A seller invoices a connected buyer. Statuses: `DRAFT` → `PENDING_APPROVAL` (seller stock reserved) → `POSTED` (seller sale and buyer purchase recorded in one transaction), or `REJECTED` / `CANCELLED` (reservation released). Every call checks that your business is the seller or the buyer; otherwise 404. Drafts are visible only to the seller.
+
+| Method | Path | Permission |
+|---|---|---|
+| GET | `/api/trade/invoices?direction=SALES|PURCHASES&status&q&page&size` | SALE_RECORD (sales) · PURCHASE_MANAGE (purchases) |
+| POST | `/api/trade/invoices` · PUT `/{id}` (drafts only) · DELETE `/{id}` (drafts only) | SALE_RECORD |
+| GET | `/api/trade/invoices/{id}` | your side's permission |
+| POST | `/{id}/send` · `/{id}/cancel {reason}` | SALE_RECORD |
+| GET | `/{id}/preview?warehouseId`: how each line would be received (`MAPPED`, `MATCHED`, `NEW`, `REVIEW`) | PURCHASE_MANAGE |
+| POST | `/{id}/approve {warehouseId, lines:[{lineId, variantId | createNew}]}` (idempotent; 409 `NEEDS_REVIEW` when a line matches several products) · `/{id}/reject {reason}` | PURCHASE_MANAGE |
+| POST | `/{id}/returns {lines:[{invoiceLineId, quantity}], reason}` · `/api/trade/returns/{id}/cancel` | PURCHASE_MANAGE |
+| POST | `/api/trade/returns/{id}/accept` · `/reject {note}` | SALE_CANCEL |
+| GET/DELETE | `/api/trade/mappings` · `/mappings/{id}` (product links) | PURCHASE_MANAGE |
+| GET | `/api/trade/summary` (dashboard counts) | signed in |
+
+Invoice request:
+```json
+{ "buyerBusinessId": 7, "warehouseId": null, "invoiceDate": null, "notes": "Deliver Monday", "deliveryNotes": null,
+  "lines": [ { "variantId": 42, "quantity": 25, "unitPrice": 450, "discount": 0, "taxRate": 0 } ],
+  "send": true, "clientRequestId": "…" }
+```
+Lines are copied from the seller's product (name, variant, SKU, barcode, specifications, unit) so later catalogue edits never change the invoice. Prices default to the selling price, tax to the product's rate; totals are always calculated on the server. Products tracked by serial number or batch are refused.

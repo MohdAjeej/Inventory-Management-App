@@ -1,5 +1,6 @@
 package com.b2binventory.app.ui.navigation
 
+import com.b2binventory.app.ui.trade.*
 import com.b2binventory.app.ui.common.Text
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.unit.dp
@@ -140,6 +141,7 @@ fun InventoryNavHost() {
                         onReports = { nav.navigateTab(Routes.REPORTS) },
                         onStockActivity = { nav.navigate(Routes.STOCK) },
                         onNotifications = { nav.navigate(Routes.NOTIFICATIONS) },
+                        onTrade = { nav.navigate(it) },
                     )
                 }
                 composable(
@@ -288,7 +290,8 @@ fun InventoryNavHost() {
                     EmployeeDetailScreen(onBack = { nav.popBackStack() })
                 }
                 composable(Routes.NOTIFICATIONS) {
-                    NotificationsScreen(onBack = { nav.popBackStack() }, onOpenProduct = { nav.navigate(Routes.product(it)) })
+                    NotificationsScreen(onBack = { nav.popBackStack() }, onOpenProduct = { nav.navigate(Routes.product(it)) },
+                        onOpenTradeInvoice = { nav.navigate(Routes.tradeInvoice(it)) }, onOpenNetwork = { nav.navigate(Routes.NETWORK) })
                 }
                 composable(Routes.PROFILE) {
                     ProfileScreen(
@@ -298,6 +301,37 @@ fun InventoryNavHost() {
                     )
                 }
                 composable(Routes.BUSINESS) { BusinessSettingsScreen(onBack = { nav.popBackStack() }) }
+                composable(Routes.NETWORK) {
+                    BusinessNetworkScreen(onBack = { nav.popBackStack() }, onCreateInvoice = { nav.navigate(Routes.tradeNew(it)) })
+                }
+                composable(Routes.TRADE_INVOICES, arguments = listOf(navArgument("direction") { type = NavType.StringType })) { entry ->
+                    TradeInvoicesScreen(
+                        onBack = { nav.popBackStack() },
+                        onOpen = { nav.navigate(Routes.tradeInvoice(it)) },
+                        onCreate = { nav.navigate(Routes.tradeNew()) },
+                    )
+                }
+                composable(
+                    Routes.TRADE_NEW,
+                    arguments = listOf(navArgument("buyerId") { type = NavType.StringType; nullable = true; defaultValue = null }),
+                ) {
+                    CreateTradeInvoiceScreen(
+                        onBack = { nav.popBackStack() },
+                        onCreated = { id -> nav.navigate(Routes.tradeInvoice(id)) { popUpTo(Routes.TRADE_NEW) { inclusive = true } } },
+                        onFindBusiness = { nav.navigate(Routes.NETWORK) },
+                    )
+                }
+                composable(Routes.TRADE_INVOICE, arguments = listOf(navArgument("id") { type = NavType.LongType })) {
+                    TradeInvoiceDetailScreen(
+                        onBack = { nav.popBackStack() },
+                        onOpenSale = { nav.navigate(Routes.sale(it)) },
+                        onOpenPurchase = { nav.navigate(Routes.purchase(it)) },
+                        onOpenProduct = { nav.navigate(Routes.product(it)) },
+                    )
+                }
+                composable(Routes.PRODUCT_LINKS) {
+                    ProductLinksScreen(onBack = { nav.popBackStack() }, onOpenProduct = { nav.navigate(Routes.product(it)) })
+                }
                 composable(Routes.APPEARANCE) { AppearanceScreen(onBack = { nav.popBackStack() }) }
                 composable(Routes.PENDING_SYNC) { PendingSyncScreen(onBack = { nav.popBackStack() }) }
                 composable(Routes.BACKUP) {

@@ -80,6 +80,7 @@ fun DashboardScreen(
     onReports: () -> Unit,
     onStockActivity: () -> Unit,
     onNotifications: () -> Unit,
+    onTrade: (String) -> Unit = {},
 ) {
     val vm = appViewModel { c, _ -> DashboardViewModel(c.api, c.authRepository) }
     val state by vm.state.collectAsStateWithLifecycle()
@@ -126,7 +127,11 @@ fun DashboardScreen(
                         item { KpiGrid(d, wide, onOpenProducts) }
                         item {
                             QuickActions(wide, onAddProduct, onStockOperation, onRecordSale, onRecordPurchase,
-                                { onOpenProducts(null) }, onReports, onStockActivity)
+                                { onOpenProducts(null) }, onReports, onStockActivity,
+                                onBusinessInvoice = { onTrade(com.b2binventory.app.ui.navigation.Routes.tradeNew()) })
+                        }
+                        if (me?.can("SALE_RECORD") == true || me?.can("PURCHASE_MANAGE") == true) {
+                            item { com.b2binventory.app.ui.trade.TradeSummaryCard(onOpen = onTrade) }
                         }
                         if (d.activeProducts == 0L) {
                             item { GetStarted(onAddProduct) }
@@ -295,6 +300,7 @@ private fun QuickActions(
     onInventory: () -> Unit,
     onReports: () -> Unit,
     onStockActivity: () -> Unit,
+    onBusinessInvoice: () -> Unit = {},
 ) {
     val me = LocalMe.current
     val c = MaterialTheme.appColors
@@ -308,6 +314,7 @@ private fun QuickActions(
         if (me?.can("REPORT_VIEW") == true || me?.can("ANALYTICS_VIEW") == true) add(Action("View Reports", Icons.Default.Insights, primary, onReports))
         if (me?.can("SALE_RECORD") == true) add(Action("Record Sale", Icons.Default.PointOfSale, MaterialTheme.colorScheme.tertiary, onRecordSale))
         if (me?.can("PURCHASE_MANAGE") == true) add(Action("Record Purchase", Icons.Default.LocalShipping, MaterialTheme.colorScheme.tertiary, onRecordPurchase))
+        if (me?.can("SALE_RECORD") == true) add(Action("Business Invoice", Icons.Default.ReceiptLong, primary, onBusinessInvoice))
         add(Action("Stock Activity", Icons.Default.History, primary, onStockActivity))
     }
     val perRow = if (wide) 4 else 3

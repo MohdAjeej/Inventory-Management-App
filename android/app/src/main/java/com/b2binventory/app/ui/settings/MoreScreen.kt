@@ -61,6 +61,15 @@ fun MoreScreen(onNavigate: (String) -> Unit, onSignedOut: () -> Unit) {
             MenuItem("Warehouses & branches", "Locations where stock is held", Icons.Default.Warehouse, Routes.WAREHOUSES),
             MenuItem("Stock counts", "Count stock and reconcile differences", Icons.AutoMirrored.Filled.FactCheck, Routes.COUNTS, "STOCK_COUNT"),
         )),
+        MenuGroup("Business network", listOf(
+            MenuItem("Connected businesses", "Find suppliers and customers on the app and connect", Icons.Default.Hub, Routes.NETWORK),
+            MenuItem("Invoices to businesses", "Send invoices that update the buyer's stock when approved", Icons.Default.Outbox,
+                Routes.tradeInvoices("SALES"), "SALE_RECORD"),
+            MenuItem("Invoices from suppliers", "Approve purchase invoices to add the goods to your stock", Icons.Default.MoveToInbox,
+                Routes.tradeInvoices("PURCHASES"), "PURCHASE_MANAGE"),
+            MenuItem("Product links", "Which supplier products go into which of your products", Icons.Default.Link,
+                Routes.PRODUCT_LINKS, "PURCHASE_MANAGE"),
+        )),
         MenuGroup("Business", listOf(
             MenuItem("Business settings", "Business profile and inventory preferences", Icons.Default.Store, Routes.BUSINESS),
             MenuItem("Employees", "Team members, roles and permissions", Icons.Default.Groups, Routes.EMPLOYEES, "EMPLOYEE_MANAGE"),
