@@ -31,6 +31,16 @@ public class Business {
     private String country;
     private String postalCode;
 
+    /** Short public code other businesses can search for, e.g. B7K3F9QA. */
+    @Column(name = "business_code", updatable = false)
+    private String businessCode;
+
+    /** Tax registration number (e.g. GSTIN), shown on trade invoices. */
+    private String taxId;
+
+    /** Whether other businesses can find this one in Business network search. */
+    private boolean discoverable = true;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -39,6 +49,13 @@ public class Business {
 
     @Version
     private long version;
+
+    @PrePersist
+    void onCreate() {
+        if (businessCode == null) {
+            businessCode = "B" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 7).toUpperCase();
+        }
+    }
 
     @PreUpdate
     void onUpdate() {

@@ -36,7 +36,10 @@ public class BackupService {
     /** Tables that belong to people or sessions, or that are rebuilt rather than copied. */
     private static final Set<String> EXCLUDED = Set.of(
             "businesses", "users", "memberships", "membership_permissions", "refresh_tokens", "invitations",
-            "notifications", "notification_reads", "audit_events", "flyway_schema_history");
+            "notifications", "notification_reads", "audit_events", "flyway_schema_history",
+            // Trade documents belong to two businesses at once; each side's sale or purchase is backed up instead.
+            "business_connections", "trade_invoices", "trade_invoice_lines", "trade_returns", "trade_return_lines",
+            "trade_events", "product_mappings");
 
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
@@ -123,6 +126,8 @@ public class BackupService {
         business.put("id", businessId);
         business.put("version", 0);
         business.remove(List.of("created_at", "updated_at"));
+        // The copy is a separate business on the network, so it gets its own public code.
+        business.put("business_code", "B" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 7).toUpperCase());
         String name = business.path("name").asText("Restored business");
         business.put("name", truncate(name + " (restored)", 200));
         insert("businesses", business, schema.columns.get("businesses"));
@@ -203,6 +208,11 @@ public class BackupService {
                        Map<String, Map<Long, Long>> idMaps) {
         JsonNode ref = row.get(fk.column);
         if (ref == null || ref.isNull()) return;
+        // A restored copy is a new, separate business: it is not linked to the other businesses on the platform.
+        if (fk.column.equals("linked_business_id")) {
+            row.putNull(fk.column);
+            return;
+        }
         switch (fk.refTable) {
             case "businesses" -> row.put(fk.column, businessId);
             // Every recorded action is attributed to the person restoring; the original people are not copied.

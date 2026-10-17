@@ -1,6 +1,8 @@
 # Inventory Platform
 
-A multi-tenant inventory management system that any kind of business can configure: a pharmacy, a bookstore, a hardware shop, a bakery, an electronics distributor, and so on. Each business defines its own categories, custom product fields, units, warehouses and team. The application is **inventory only**: no billing, sales or purchase orders, payments or accounting.
+A multi-tenant inventory management system that any kind of business can configure: a pharmacy, a bookstore, a hardware shop, a bakery, an electronics distributor, and so on. Each business defines its own categories, custom product fields, units, warehouses and team. Besides inventory it records sales, purchases, payments and profit, and lets connected businesses invoice each other. It is not a full accounting system.
+
+This README is for developers. Customer-facing documentation is in [`CUSTOMER_PROJECT_DOCUMENTATION.md`](CUSTOMER_PROJECT_DOCUMENTATION.md).
 
 | Part | Stack |
 |------|-------|
@@ -180,6 +182,55 @@ The suite starts a throwaway PostgreSQL container and covers:
 5. **Stock → Update stock** (or the buttons on a product) to add, reduce, adjust or transfer. Every change appears in the history.
 6. **More → Employees → Invite**: share the code. The person taps *I have an invitation code* on the sign-in screen.
 7. **Reports**: filter, then export CSV or Excel. Files are saved to Downloads, and you're offered a share sheet.
+
+## Business network and business invoices
+
+Businesses on the platform can trade with each other. For example, a wholesaler (Deepak Traders) invoices a retailer (Shri Ji Sales). The retailer approves the invoice, and both inventories update automatically, so the retailer never re-types anything.
+
+**Workflow (More → Business network):**
+
+1. **Connect.** Search for a business by name, by its business code (shown on the Network screen, e.g. `B7K3F9QA`), or by exact phone number. Then send a request; the other business accepts it.
+   - Search shows only the name, type, city and code.
+   - A business can hide itself from search.
+   - Connecting needs the *Business settings* permission.
+2. **Invoice (seller).** In *Invoices to businesses → New invoice*, pick a connected buyer, add products (exact size/variant), quantities, prices, discounts and tax. Then send it, or save it as a draft.
+   - All amounts are calculated on the server.
+   - Sending **reserves** the seller's stock: on hand is unchanged, but the stock can't be sold elsewhere.
+   - The buyer gets an in-app notification, and the dashboard shows "N purchase invoices need your approval". The card refreshes every minute.
+3. **Approve or reject (buyer).** *Review and approve* shows where each line will go in the buyer's stock:
+   - **Product matching:** a saved product link is used first, then the same barcode, then the same name, variant and unit (only when exactly one product matches). If several products match, the buyer must choose one. If none matches, a new product is created with the same name, size, specifications, unit and price.
+   - **Units:** units are never converted. A line invoiced in sheets can only go into a product counted in sheets.
+4. **Posting.** Approval runs in **one database transaction**:
+   - The seller's reservation is released and an ordinary **sale** is recorded for the seller, with the same invoice number and the buyer as customer. This deducts the stock.
+   - An ordinary **purchase** is recorded for the buyer at the agreed prices, with the seller as supplier. This adds the stock and updates the average cost.
+   - If anything fails, nothing is saved and the invoice stays pending. Approving twice changes nothing.
+5. **Reject or cancel.** The buyer can reject with a reason; the seller can cancel a pending invoice. Either way the reservation is released and no stock moves.
+6. **Returns.** On an approved invoice the buyer can request a return, which holds the buyer's stock. When the seller accepts:
+   - The goods leave the buyer's stock as a *Returned to supplier* movement.
+   - They come back to the seller as a return on the original sale.
+
+**Statuses:**
+- Invoices: `DRAFT` → `PENDING_APPROVAL` → `POSTED`, or `REJECTED` / `CANCELLED`.
+- Returns: `REQUESTED` → `ACCEPTED`, or `REJECTED` / `CANCELLED`.
+
+**Privacy and permissions:**
+- Each request is checked on the server: the caller's business must be the seller or the buyer, otherwise the server answers 404.
+- Drafts are visible only to the seller.
+- Each side sees the other's contact details only on shared invoices, and staff names only from its own business.
+- Seller actions need *Record sales*. Buyer actions need *Manage purchases*. Accepting returns needs *Cancel sales*.
+
+**Endpoints:**
+- `/api/network/*`: search, connections, your business code.
+- `/api/trade/*`: invoices, preview, approve, reject, cancel, returns, product links, summary.
+
+**Database:** migration `V4__business_network.sql` runs automatically through Flyway when the backend starts. It only adds new tables and columns. Existing businesses get a business code.
+
+**Limitations:**
+- Products tracked by serial number or batch can't be put on business invoices yet.
+- Payments are recorded separately by each business (in Sales / Purchases).
+- Invoices don't expire; the seller cancels them.
+- Unit conversion is not applied between businesses.
+- Backups contain each business's own sales and purchases, but not the shared invoice records or connections.
 
 ## API
 

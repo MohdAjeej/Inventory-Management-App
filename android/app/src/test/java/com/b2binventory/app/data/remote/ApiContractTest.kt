@@ -101,6 +101,23 @@ class ApiContractTest {
     }
 
     @Test
+    fun tradeInvoice() {
+        val inv = decode("trade_invoice", TradeInvoice.serializer())
+        assertEquals("POSTED", inv.status)
+        assertEquals("BUYER", inv.role)
+        assertTrue(inv.invoiceNumber.startsWith("DT-"))
+        val line = inv.lines.single()
+        assertEquals("8x4 ft · 1 mm", line.variantName)
+        assertEquals("SHT", line.unitCode)
+        assertEquals(25.0, line.quantity, 0.0)
+        assertEquals(450.0, line.unitPrice, 0.0)
+        assertEquals(5.0, line.returnedQuantity, 0.0)
+        assertTrue(line.buyerProductId != null)
+        assertEquals("ACCEPTED", inv.returns.single().status)
+        assertEquals(listOf("CREATED", "SENT", "APPROVED", "RETURN_REQUESTED", "RETURN_ACCEPTED"), inv.events.map { it.action })
+    }
+
+    @Test
     fun movementSummary() {
         val s = decode("movement_summary", MovementSummary.serializer())
         assertEquals(82.0, s.totalOut, 0.0)

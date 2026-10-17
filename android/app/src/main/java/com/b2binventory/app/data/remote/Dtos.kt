@@ -107,6 +107,9 @@ data class Business(
     val state: String? = null,
     val country: String? = null,
     val postalCode: String? = null,
+    /** Public code other businesses search for in Business network. */
+    val businessCode: String? = null,
+    val taxId: String? = null,
 )
 
 @Serializable
@@ -120,6 +123,8 @@ data class UpdateBusinessRequest(
     val state: String? = null,
     val country: String? = null,
     val postalCode: String? = null,
+    /** Empty clears it; null leaves it unchanged. */
+    val taxId: String? = null,
 )
 
 @Serializable

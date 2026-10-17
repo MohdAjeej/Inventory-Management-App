@@ -1,0 +1,118 @@
+{
+  "id": 1,
+  "invoiceNumber": "DT-2026-00001",
+  "status": "POSTED",
+  "role": "BUYER",
+  "seller": {
+    "id": 10,
+    "name": "Deepak Traders 1792062161",
+    "businessCode": "B678E709",
+    "phone": "+91 98100 00001",
+    "city": "Jaipur",
+    "taxId": "08ABCDE1234F1Z5"
+  },
+  "buyer": {
+    "id": 11,
+    "name": "Shri Ji Sales 1792062161",
+    "businessType": "Hardware",
+    "businessCode": "BBCE56AE"
+  },
+  "invoiceDate": "2026-10-15",
+  "notes": "Deliver Monday",
+  "warehouseName": "Main Warehouse",
+  "lines": [
+    {
+      "id": 1,
+      "lineNo": 1,
+      "productName": "Mica Sheet",
+      "variantName": "8x4 ft · 1 mm",
+      "defaultVariant": false,
+      "attributes": {},
+      "variantAttributes": {
+        "Size": "8 x 4 feet",
+        "Thickness": "1 mm"
+      },
+      "unitCode": "SHT",
+      "unitName": "Sheet",
+      "unitDecimals": 0,
+      "quantity": 25.0,
+      "unitPrice": 450.0,
+      "grossAmount": 11250.0,
+      "discount": 0.0,
+      "netAmount": 11250.0,
+      "taxRate": 0.0,
+      "taxAmount": 0.0,
+      "lineTotal": 11250.0,
+      "buyerVariantId": 51,
+      "returnedQuantity": 5.0,
+      "buyerProductId": 49
+    }
+  ],
+  "subtotal": 11250.0,
+  "discountTotal": 0.0,
+  "taxTotal": 0.0,
+  "total": 11250.0,
+  "currencyCode": "INR",
+  "createdAt": "2026-10-15T11:02:47.974720Z",
+  "sentAt": "2026-10-15T11:02:48.155562Z",
+  "respondedAt": "2026-10-15T11:02:49.314397Z",
+  "purchaseId": 2,
+  "returns": [
+    {
+      "id": 1,
+      "returnNumber": "DT-2026-00001-R1",
+      "status": "ACCEPTED",
+      "reason": "Edges broken",
+      "total": 2250.0,
+      "requestedAt": "2026-10-15T11:02:49.906197Z",
+      "respondedAt": "2026-10-15T11:02:50.601453Z",
+      "lines": [
+        {
+          "invoiceLineId": 1,
+          "productName": "Mica Sheet",
+          "variantName": "8x4 ft · 1 mm",
+          "unitCode": "SHT",
+          "quantity": 5.0,
+          "amount": 2250.0
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "action": "CREATED",
+      "businessId": 10,
+      "businessName": "Deepak Traders 1792062161",
+      "at": "2026-10-15T11:02:48.065896Z"
+    },
+    {
+      "action": "SENT",
+      "businessId": 10,
+      "businessName": "Deepak Traders 1792062161",
+      "at": "2026-10-15T11:02:48.155562Z"
+    },
+    {
+      "action": "APPROVED",
+      "businessId": 11,
+      "businessName": "Shri Ji Sales 1792062161",
+      "actorName": "Owner Shri Ji Sales 1792062161",
+      "note": "Stock received into Main Warehouse",
+      "at": "2026-10-15T11:02:49.316598Z"
+    },
+    {
+      "action": "RETURN_REQUESTED",
+      "businessId": 11,
+      "businessName": "Shri Ji Sales 1792062161",
+      "actorName": "Owner Shri Ji Sales 1792062161",
+      "note": "DT-2026-00001-R1 · Edges broken",
+      "at": "2026-10-15T11:02:49.986396Z"
+    },
+    {
+      "action": "RETURN_ACCEPTED",
+      "businessId": 10,
+      "businessName": "Deepak Traders 1792062161",
+      "note": "DT-2026-00001-R1",
+      "at": "2026-10-15T11:02:50.601453Z"
+    }
+  ]
+}

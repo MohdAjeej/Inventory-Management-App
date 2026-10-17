@@ -15,5 +15,7 @@ public enum MovementType {
     SALE_CANCEL,
     RETURN_IN,
     PURCHASE,
-    PURCHASE_CANCEL
+    PURCHASE_CANCEL,
+    /** Stock sent back to the supplier against a trade invoice (buyer side). */
+    PURCHASE_RETURN
 }

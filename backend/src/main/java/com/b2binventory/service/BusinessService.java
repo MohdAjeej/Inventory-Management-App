@@ -51,6 +51,7 @@ public class BusinessService {
         b.setState(blankToNull(request.state()));
         b.setCountry(blankToNull(request.country()));
         b.setPostalCode(blankToNull(request.postalCode()));
+        if (request.taxId() != null) b.setTaxId(blankToNull(request.taxId()));
         CurrentUser me = CurrentUser.get();
         audit.record(me.businessId(), me.membershipId(), "BUSINESS_UPDATED", "Business", b.getId(), Map.of("name", b.getName()));
         return toResponse(b);
@@ -122,7 +123,8 @@ public class BusinessService {
 
     private static BusinessResponse toResponse(Business b) {
         return new BusinessResponse(b.getId(), b.getName(), b.getBusinessType(), b.getLogoUrl(), b.getEmail(), b.getPhone(),
-                b.getAddress(), b.getCity(), b.getState(), b.getCountry(), b.getPostalCode(), b.getCreatedAt());
+                b.getAddress(), b.getCity(), b.getState(), b.getCountry(), b.getPostalCode(), b.getCreatedAt(),
+                b.getBusinessCode(), b.getTaxId());
     }
 
     private static SettingsResponse toResponse(BusinessSettings s) {

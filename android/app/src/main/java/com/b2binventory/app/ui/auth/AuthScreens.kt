@@ -1,6 +1,7 @@
 package com.b2binventory.app.ui.auth
 
 import com.b2binventory.app.ui.common.Text
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -13,12 +14,15 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.b2binventory.app.R
 import com.b2binventory.app.ui.common.*
 
 @Composable
@@ -66,11 +70,7 @@ fun LoginScreen(onSignedIn: () -> Unit, onRegister: () -> Unit, onJoin: () -> Un
 @Composable
 private fun BrandHeader(subtitle: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Surface(color = MaterialTheme.colorScheme.primary, shape = MaterialTheme.shapes.large, modifier = Modifier.size(72.dp)) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Inventory, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onPrimary)
-            }
-        }
+        Image(painterResource(R.drawable.stoknexa_mark), null, Modifier.size(72.dp).clip(MaterialTheme.shapes.large))
         Spacer(Modifier.height(16.dp))
         Text("Inventory", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)

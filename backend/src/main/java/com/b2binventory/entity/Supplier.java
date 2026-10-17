@@ -30,6 +30,9 @@ public class Supplier {
     private String notes;
     private boolean archived = false;
 
+    /** Set when this record stands for another business on the platform (created by trade invoices). */
+    private Long linkedBusinessId;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 

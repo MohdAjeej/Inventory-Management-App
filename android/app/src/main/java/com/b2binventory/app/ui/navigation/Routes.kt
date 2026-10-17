@@ -40,6 +40,12 @@ object Routes {
     const val BACKUP = "backup"
     const val PENDING_SYNC = "pending-sync"
 
+    const val NETWORK = "network"
+    const val TRADE_INVOICES = "trade-invoices/{direction}"
+    const val TRADE_NEW = "trade-new?buyerId={buyerId}"
+    const val TRADE_INVOICE = "trade/{id}"
+    const val PRODUCT_LINKS = "product-links"
+
     fun products(status: String? = null) = if (status == null) "products" else "products?status=$status"
     fun product(id: Long) = "product/$id"
     fun productEdit(id: Long) = "product/$id/edit"
@@ -53,6 +59,10 @@ object Routes {
     fun purchaseNew(productId: Long? = null) = if (productId == null) "purchase-new" else "purchase-new?productId=$productId"
     fun purchase(id: Long) = "purchase/$id"
     fun count(id: Long) = "counts/$id"
+    /** direction: SALES (invoices sent) or PURCHASES (invoices received). */
+    fun tradeInvoices(direction: String) = "trade-invoices/$direction"
+    fun tradeNew(buyerId: Long? = null) = if (buyerId == null) "trade-new" else "trade-new?buyerId=$buyerId"
+    fun tradeInvoice(id: Long) = "trade/$id"
     fun attributes(categoryId: Long?, categoryName: String?): String {
         val params = listOfNotNull(categoryId?.let { "categoryId=$it" },
             categoryName?.let { "categoryName=" + Uri.encode(it) })

@@ -234,7 +234,7 @@ private fun StockReportsScreen(header: @Composable () -> Unit, onOpenProduct: (L
                     item {
                         ChipMenu(filters.type?.let(Fmt::movement) ?: "All types", filters.type != null,
                             listOf<String?>(null, "OPENING", "ADD", "REDUCE", "ADJUST", "TRANSFER_OUT", "TRANSFER_IN", "COUNT_ADJUST",
-                                "DAMAGE", "RESERVE", "RELEASE", "SALE", "SALE_CANCEL", "RETURN_IN", "PURCHASE", "PURCHASE_CANCEL"),
+                                "DAMAGE", "RESERVE", "RELEASE", "SALE", "SALE_CANCEL", "RETURN_IN", "PURCHASE", "PURCHASE_CANCEL", "PURCHASE_RETURN"),
                             { it?.let(Fmt::movement) ?: "All types" }) { t -> vm.setFilters { it.copy(type = t) } }
                     }
                 }
