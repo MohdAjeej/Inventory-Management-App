@@ -6,7 +6,9 @@ object ApiConfig {
     // Use ipconfig (Windows) or ifconfig (Mac/Linux) to find your IP
     
     // Physical Device Configuration - Using your computer's IP
-    const val BASE_URL = "http://192.168.29.166:8082/"
+    // const val BASE_URL = "http://192.168.29.166:8082/"
+    const val BASE_URL = "http://147.93.108.99:8082/"
+
     
     // For Emulator, use this instead:
     // const val BASE_URL = "http://10.0.2.2:8082/"
