@@ -6,6 +6,7 @@ import com.b2binventory.dto.PageResponse;
 import com.b2binventory.entity.*;
 import com.b2binventory.exception.BadRequestException;
 import com.b2binventory.exception.ConflictException;
+import com.b2binventory.exception.ForbiddenException;
 import com.b2binventory.exception.NotFoundException;
 import com.b2binventory.repository.InvitationRepository;
 import com.b2binventory.repository.MembershipRepository;
@@ -68,6 +69,8 @@ public class EmployeeService {
     public EmployeeResponse changeRole(Long membershipId, Role role) {
         CurrentUser me = CurrentUser.get();
         Membership m = find(membershipId);
+        requireCanManage(me, m);
+        requireCanAssign(me, role);
         if (m.getRole() == Role.ADMIN && role != Role.ADMIN) {
             ensureAnotherActiveAdmin(m);
         }
@@ -85,6 +88,15 @@ public class EmployeeService {
     public EmployeeResponse setPermissions(Long membershipId, Map<Permission, Boolean> overrides) {
         CurrentUser me = CurrentUser.get();
         Membership m = find(membershipId);
+        requireCanManage(me, m);
+        if (me.role() != Role.ADMIN) {
+            // A delegated employee manager can only hand out permissions they hold themselves.
+            overrides.forEach((p, granted) -> {
+                if (Boolean.TRUE.equals(granted) && !me.has(p)) {
+                    throw new ForbiddenException("You cannot grant a permission you do not have: " + p.getLabel());
+                }
+            });
+        }
         Set<Permission> defaults = RolePermissions.defaultsFor(m.getRole());
         m.getPermissionOverrides().clear();
         // Only keep overrides that actually differ from the role defaults.
@@ -103,6 +115,7 @@ public class EmployeeService {
         if (m.getId().equals(me.membershipId())) {
             throw new BadRequestException("You cannot deactivate your own account");
         }
+        requireCanManage(me, m);
         if (m.getRole() == Role.ADMIN) {
             ensureAnotherActiveAdmin(m);
         }
@@ -121,6 +134,7 @@ public class EmployeeService {
     public EmployeeResponse reactivate(Long membershipId) {
         CurrentUser me = CurrentUser.get();
         Membership m = find(membershipId);
+        requireCanManage(me, m);
         m.setStatus(MembershipStatus.ACTIVE);
         audit.record(me.businessId(), me.membershipId(), "EMPLOYEE_REACTIVATED", "Membership", m.getId(),
                 Map.of("email", m.getUser().getEmail()));
@@ -130,6 +144,7 @@ public class EmployeeService {
     @Transactional
     public InvitationResponse invite(InviteRequest request) {
         CurrentUser me = CurrentUser.get();
+        requireCanAssign(me, request.role());
         String email = request.email().trim().toLowerCase();
         users.findByEmailIgnoreCase(email)
                 .flatMap(u -> memberships.findByUserIdAndBusinessId(u.getId(), me.businessId()))
@@ -187,6 +202,26 @@ public class EmployeeService {
     private Membership find(Long membershipId) {
         return memberships.findByIdAndBusinessId(membershipId, CurrentUser.get().businessId())
                 .orElseThrow(() -> new NotFoundException("Employee", membershipId));
+    }
+
+    /**
+     * EMPLOYEE_MANAGE can be granted to non-admins. Without these checks such a member could promote
+     * themselves (or an invitee) to administrator, or demote and lock out the real administrators.
+     */
+    private static void requireCanManage(CurrentUser me, Membership target) {
+        if (me.role() == Role.ADMIN) return;
+        if (target.getId().equals(me.membershipId())) {
+            throw new ForbiddenException("You cannot change your own role or permissions");
+        }
+        if (target.getRole() == Role.ADMIN) {
+            throw new ForbiddenException("Only an administrator can manage another administrator");
+        }
+    }
+
+    private static void requireCanAssign(CurrentUser me, Role role) {
+        if (role == Role.ADMIN && me.role() != Role.ADMIN) {
+            throw new ForbiddenException("Only an administrator can make someone an administrator");
+        }
     }
 
     private void ensureAnotherActiveAdmin(Membership m) {

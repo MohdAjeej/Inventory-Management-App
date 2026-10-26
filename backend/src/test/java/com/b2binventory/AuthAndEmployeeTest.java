@@ -109,6 +109,37 @@ class AuthAndEmployeeTest extends IntegrationTest {
     }
 
     @Test
+    void delegatedEmployeeManagerCannotEscalateToAdmin() {
+        Session admin = registerBusiness("Escalate Co");
+        Session manager = addEmployee(admin, "STAFF");
+        Session other = addEmployee(admin, "STAFF");
+        assertThat(put(admin, "/api/employees/" + manager.membershipId() + "/permissions",
+                Map.of("overrides", Map.of("EMPLOYEE_MANAGE", true))).status()).isEqualTo(200);
+
+        // Cannot promote themselves, change their own permissions, or create another admin.
+        assertThat(put(manager, "/api/employees/" + manager.membershipId() + "/role", Map.of("role", "ADMIN")).status())
+                .isEqualTo(403);
+        assertThat(put(manager, "/api/employees/" + manager.membershipId() + "/permissions",
+                Map.of("overrides", Map.of("BUSINESS_SETTINGS", true))).status()).isEqualTo(403);
+        assertThat(put(manager, "/api/employees/" + other.membershipId() + "/role", Map.of("role", "ADMIN")).status())
+                .isEqualTo(403);
+        assertThat(post(manager, "/api/invitations", Map.of("email", "boss-" + System.nanoTime() + "@test.local",
+                "role", "ADMIN")).status()).isEqualTo(403);
+        // Cannot hand out permissions they do not hold, or touch the administrator.
+        assertThat(put(manager, "/api/employees/" + other.membershipId() + "/permissions",
+                Map.of("overrides", Map.of("BUSINESS_SETTINGS", true))).status()).isEqualTo(403);
+        assertThat(put(manager, "/api/employees/" + admin.membershipId() + "/role", Map.of("role", "STAFF")).status())
+                .isEqualTo(403);
+        assertThat(post(manager, "/api/employees/" + admin.membershipId() + "/deactivate", null).status())
+                .isEqualTo(403);
+
+        // Ordinary delegated management still works.
+        assertThat(put(manager, "/api/employees/" + other.membershipId() + "/role", Map.of("role", "INVENTORY_MANAGER"))
+                .status()).isEqualTo(200);
+        assertThat(get(admin, "/api/auth/me").get("role").asText()).isEqualTo("ADMIN");
+    }
+
+    @Test
     void lastAdminCannotBeDemotedOrDeactivated() {
         Session admin = registerBusiness("Solo Co");
         assertThat(put(admin, "/api/employees/" + admin.membershipId() + "/role", Map.of("role", "STAFF")).status())
