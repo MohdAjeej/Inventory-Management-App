@@ -133,9 +133,23 @@ class AuthAndEmployeeTest extends IntegrationTest {
         assertThat(post(manager, "/api/employees/" + admin.membershipId() + "/deactivate", null).status())
                 .isEqualTo(403);
 
-        // Ordinary delegated management still works.
+        // Nor assign a role, or invite someone into one, that carries permissions they lack.
         assertThat(put(manager, "/api/employees/" + other.membershipId() + "/role", Map.of("role", "INVENTORY_MANAGER"))
+                .status()).isEqualTo(403);
+        assertThat(post(manager, "/api/invitations", Map.of("email", "inv-" + System.nanoTime() + "@test.local",
+                "role", "INVENTORY_MANAGER")).status()).isEqualTo(403);
+
+        // Grants an administrator already made survive a delegated manager's unrelated edit.
+        assertThat(put(admin, "/api/employees/" + other.membershipId() + "/permissions",
+                Map.of("overrides", Map.of("BUSINESS_SETTINGS", true))).status()).isEqualTo(200);
+        assertThat(put(manager, "/api/employees/" + other.membershipId() + "/permissions",
+                Map.of("overrides", Map.of("BUSINESS_SETTINGS", true, "SALE_RECORD", false))).status()).isEqualTo(200);
+
+        // Ordinary delegated management still works.
+        assertThat(put(manager, "/api/employees/" + other.membershipId() + "/role", Map.of("role", "STAFF"))
                 .status()).isEqualTo(200);
+        assertThat(post(manager, "/api/invitations", Map.of("email", "ok-" + System.nanoTime() + "@test.local",
+                "role", "STAFF")).status()).isEqualTo(201);
         assertThat(get(admin, "/api/auth/me").get("role").asText()).isEqualTo("ADMIN");
     }
 

@@ -71,7 +71,9 @@ export function StockOperationDialog({ open, onClose, onDone, initial }: { open:
       setWarehouseId(def?.id);
       setToWarehouseId(w.find((x) => x.id !== def?.id)?.id);
     }).catch(() => {});
-  }, [open, client, initial]);
+    // Reset only when the dialog opens; `initial` is read at that moment. Parents may pass a new
+    // object on every render, which would otherwise wipe the form and its idempotency key mid-edit.
+  }, [open, client]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!picked?.product.trackBatches) return setBatches([]);

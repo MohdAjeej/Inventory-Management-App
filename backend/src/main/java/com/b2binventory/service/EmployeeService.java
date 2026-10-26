@@ -91,8 +91,10 @@ public class EmployeeService {
         requireCanManage(me, m);
         if (me.role() != Role.ADMIN) {
             // A delegated employee manager can only hand out permissions they hold themselves.
+            // Grants an administrator already gave this employee may be kept unchanged.
+            Map<Permission, Boolean> existing = m.getPermissionOverrides();
             overrides.forEach((p, granted) -> {
-                if (Boolean.TRUE.equals(granted) && !me.has(p)) {
+                if (Boolean.TRUE.equals(granted) && !Boolean.TRUE.equals(existing.get(p)) && !me.has(p)) {
                     throw new ForbiddenException("You cannot grant a permission you do not have: " + p.getLabel());
                 }
             });
@@ -221,6 +223,13 @@ public class EmployeeService {
     private static void requireCanAssign(CurrentUser me, Role role) {
         if (role == Role.ADMIN && me.role() != Role.ADMIN) {
             throw new ForbiddenException("Only an administrator can make someone an administrator");
+        }
+        if (me.role() == Role.ADMIN) return;
+        // Assigning a role hands out its default permissions, so the same limit as for overrides applies.
+        for (Permission p : RolePermissions.defaultsFor(role)) {
+            if (!me.has(p)) {
+                throw new ForbiddenException("You cannot assign a role with permissions you do not have: " + p.getLabel());
+            }
         }
     }
 

@@ -71,7 +71,11 @@ function loadCatalog(lang: string): Promise<Catalog> {
           })
           .filter((x): x is { re: RegExp; out: string } => x !== null),
       }))
-      .catch(() => ({ exact: new Map(), templates: [] }));
+      .catch(() => {
+        // Forget the failure so choosing this language again retries the download.
+        catalogs.delete(lang);
+        return { exact: new Map(), templates: [] };
+      });
     catalogs.set(lang, p);
   }
   return p;

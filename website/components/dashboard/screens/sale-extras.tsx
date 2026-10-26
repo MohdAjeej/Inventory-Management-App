@@ -75,6 +75,7 @@ export function SaleReturnScreen({ id }: { id: number }) {
       router.push(href(`/sales/${id}`));
     } catch (err) {
       if (err instanceof ApiError) { setErrors(err.fieldErrors); setFormError(err.message); }
+      else setFormError("Couldn't reach the server. Check your connection and try again.");
       setSaving(false);
     }
   };

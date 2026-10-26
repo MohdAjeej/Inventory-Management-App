@@ -95,11 +95,12 @@ const ACTION: Record<string, { key: ScreenKey; title: string }> = {
 export function matchScreen(slug: string[] | undefined): ScreenMatch | null {
   const parts = slug ?? [];
   const joined = parts.join("/");
-  if (STATIC[joined]) return STATIC[joined];
-  if (parts.length === 2 && DETAIL[parts[0]] && /^\d+$/.test(parts[1])) {
+  // Own-property checks, so slugs like "constructor" or "__proto__" don't match Object.prototype members.
+  if (Object.hasOwn(STATIC, joined)) return STATIC[joined];
+  if (parts.length === 2 && Object.hasOwn(DETAIL, parts[0]) && /^\d+$/.test(parts[1])) {
     return { ...DETAIL[parts[0]], id: Number(parts[1]) };
   }
-  if (parts.length === 3 && /^\d+$/.test(parts[1]) && ACTION[`${parts[0]}/${parts[2]}`]) {
+  if (parts.length === 3 && /^\d+$/.test(parts[1]) && Object.hasOwn(ACTION, `${parts[0]}/${parts[2]}`)) {
     return { ...ACTION[`${parts[0]}/${parts[2]}`], id: Number(parts[1]) };
   }
   return null;

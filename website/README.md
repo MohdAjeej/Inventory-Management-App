@@ -115,8 +115,8 @@ website/
 | Purchases | `GET/POST /purchases`, `/purchases/{id}`, `/payments`, `/cancel` | Record purchase, add payment, cancel |
 | Customers / Suppliers | `GET/POST/PUT /customers`, `/suppliers`, `/archive`, `/restore` | Create, edit, archive |
 | B2B invoices | `/trade/invoices` (list/get/create/send/cancel/reject/delete/preview/approve), `/network/connections` | Create and send or save a draft; cancel; review and approve (including `NEEDS_REVIEW`); reject |
-| Reports & analytics | `/analytics/overview|products|categories|insights|trend`, `/reports/movement-summary`, exports | CSV/XLSX downloads through the proxy |
-| Employees | `/employees`, `/employees/{id}/role|deactivate|reactivate`, `/invitations` | Invite (shows the code), change role, deactivate, cancel invitation |
+| Reports & analytics | `/analytics/overview`, `/products`, `/categories`, `/insights`, `/trend`, `/reports/movement-summary`, exports | CSV/XLSX downloads through the proxy |
+| Employees | `/employees`, `/employees/{id}/role`, `/deactivate`, `/reactivate`, `/invitations` | Invite (shows the code), change role, deactivate, cancel invitation |
 | Business settings | `/business`, `/business/settings`, `/network/me` | Edit profile and settings (BUSINESS_SETTINGS) |
 | Profile | `/auth/me`, `/auth/change-password` | Edit name and phone, change password |
 | Notifications | `/notifications`, `/read`, `/read-all` | Mark as read |

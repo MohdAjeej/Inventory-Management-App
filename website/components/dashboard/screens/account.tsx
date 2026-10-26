@@ -102,7 +102,7 @@ export function EmployeesScreen() {
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="secondary" icon={<Copy className="size-3.5" aria-hidden />} onClick={() => { navigator.clipboard?.writeText(i.code); toast("Code copied"); }}>Copy code</Button>
-                    <Button size="sm" variant="ghost" onClick={async () => { await api.employees.cancelInvitation(client, i.id); invites.reload(); toast("Invitation cancelled" + demo); }}>Cancel</Button>
+                    <Button size="sm" variant="ghost" onClick={async () => { try { await api.employees.cancelInvitation(client, i.id); invites.reload(); toast("Invitation cancelled" + demo); } catch (err) { toast((err as Error).message, "error"); } }}>Cancel</Button>
                   </div>
                 </li>
               ))}

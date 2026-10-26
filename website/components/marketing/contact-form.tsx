@@ -13,7 +13,16 @@ export function ContactForm() {
   const [f, setF] = useState({ name: "", email: "", company: "", topic: "question", message: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<Status>({ kind: "idle" });
-  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }));
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => {
+    setF((x) => ({ ...x, [k]: e.target.value }));
+    // Corrected input should not keep showing the old failure.
+    setErrors((x) => {
+      if (!(k in x)) return x;
+      const { [k]: _cleared, ...rest } = x; // eslint-disable-line @typescript-eslint/no-unused-vars
+      return rest;
+    });
+    setStatus((s) => (s.kind === "error" ? { kind: "idle" } : s));
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
