@@ -2,13 +2,18 @@ package com.b2binventory.app.di
 
 import android.content.Context
 import com.b2binventory.app.BuildConfig
+import com.b2binventory.app.ui.common.flatten
+
+import com.b2binventory.app.data.remote.ApiResult
 import com.b2binventory.app.data.remote.ApiService
 import com.b2binventory.app.data.remote.AuthInterceptor
-import com.b2binventory.app.data.remote.TokenAuthenticator
 import com.b2binventory.app.data.remote.AuthApi
+import com.b2binventory.app.data.remote.CategoryNode
 import com.b2binventory.app.data.remote.JsonConfig
-import com.b2binventory.app.data.repository.AuthRepository
+import com.b2binventory.app.data.remote.TokenAuthenticator
+import com.b2binventory.app.data.remote.apiCall
 import com.b2binventory.app.data.prefs.AppPreferences
+import com.b2binventory.app.data.repository.AuthRepository
 import com.b2binventory.app.data.session.SessionStore
 import com.b2binventory.app.data.sync.ConnectivityMonitor
 import com.b2binventory.app.data.sync.OfflineCache
@@ -17,6 +22,9 @@ import com.b2binventory.app.data.sync.SyncManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import okhttp3.Cache
 import okhttp3.MediaType.Companion.toMediaType
@@ -37,7 +45,7 @@ class AppContainer(context: Context) {
 
     val sessionStore = SessionStore(context.applicationContext)
 
-    val appPreferences = AppPreferences(context.applicationContext)
+    val appPreferences = AppPreferences(context.applicationContext, appScope)
 
     val connectivity = ConnectivityMonitor(context.applicationContext)
 
@@ -80,6 +88,20 @@ class AppContainer(context: Context) {
         .addConverterFactory(converter)
         .build()
         .create(ApiService::class.java)
+
+    /** Reference data, cached once per app session and refreshed on demand. */
+    private val _categories = MutableStateFlow<List<CategoryNode>?>(null)
+    val categories: StateFlow<List<CategoryNode>?> = _categories.asStateFlow()
+
+    suspend fun loadCategories(force: Boolean = false): List<CategoryNode> {
+        if (!force) {
+            _categories.value?.let { return it }
+        }
+        val ok = apiCall { api.categories() }
+        val list = if (ok is ApiResult.Ok) ok.value.flatten() else emptyList()
+        _categories.value = list
+        return list
+    }
 
     val authRepository = AuthRepository(api, sessionStore, pendingOps)
 

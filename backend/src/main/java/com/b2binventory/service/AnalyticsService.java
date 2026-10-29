@@ -1,7 +1,6 @@
 package com.b2binventory.service;
 
 import com.b2binventory.dto.AnalyticsDtos.*;
-import com.b2binventory.dto.AnalyticsDtos.Period;
 import com.b2binventory.dto.ProductDtos.StockStatus;
 import com.b2binventory.entity.BusinessSettings;
 import com.b2binventory.exception.BadRequestException;
@@ -14,7 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
-import java.time.*;
+import java.time.DayOfWeek;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
@@ -87,16 +94,24 @@ public class AnalyticsService {
             """;
 
     /** Active products (and archived ones, kept in Java only when they sold in the period). */
+        /** Active products (and archived ones, kept in Java only when they sold in the period). */
+        /** Active products (and archived ones, kept in Java only when they sold in the period). */
     private static final String PRODUCTS_SQL = """
             SELECT p.id, p.name, dv.sku, p.category_id, c.name, u.code,
-                   COALESCE((SELECT SUM(b.on_hand - b.reserved - b.damaged)
-                             FROM stock_balances b JOIN product_variants v ON v.id = b.variant_id
-                             WHERE v.product_id = p.id AND v.archived = FALSE), 0),
+                   COALESCE(sb.available, 0) AS available,
                    COALESCE(p.min_stock, :def), p.archived, p.created_at, p.average_cost, p.purchase_price, p.sale_price
             FROM products p
             JOIN units u ON u.id = p.base_unit_id
             LEFT JOIN categories c ON c.id = p.category_id
             LEFT JOIN product_variants dv ON dv.product_id = p.id AND dv.is_default = TRUE
+            LEFT JOIN (
+                SELECT v.product_id,
+                       SUM(b.on_hand - b.reserved - b.damaged) AS available
+                FROM stock_balances b
+                JOIN product_variants v ON v.id = b.variant_id
+                WHERE v.archived = FALSE
+                GROUP BY v.product_id
+            ) sb ON sb.product_id = p.id
             WHERE p.business_id = :bid
             """;
 

@@ -7,13 +7,10 @@ plugins {
 
 // Backend address baked into the build. Override with -PapiBaseUrl=http://<host>:8082/
 // or set apiBaseUrl in ~/.gradle/gradle.properties. Emulators reach the host at http://10.0.2.2:8082/.
-<<<<<<< HEAD
-val apiBaseUrl: String = (project.findProperty("apiBaseUrl") as String?) ?: "http://192.168.0.121:8082/"
-=======
+// val apiBaseUrl: String = (project.findProperty("apiBaseUrl") as String?) ?: "http://192.168.0.121:8082/"
 // val apiBaseUrl: String = (project.findProperty("apiBaseUrl") as String?) ?: "http://192.168.29.166:8082/"
 val apiBaseUrl: String = (project.findProperty("apiBaseUrl") as String?) ?: "http://147.93.108.99:8082/"
 
->>>>>>> main
 
 android {
     namespace = "com.b2binventory.app"

@@ -1,6 +1,8 @@
 package com.b2binventory.app.data.prefs
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.datastore.preferences.core.edit
@@ -23,7 +25,7 @@ data class AppLanguage(val tag: String, val nativeName: String)
  * Device-level preferences. Unlike the session these survive sign-out, so the theme and
  * language stay the same for whoever uses the phone next.
  */
-class AppPreferences(private val context: Context) {
+class AppPreferences(private val context: Context,private val scope: CoroutineScope) {
 
     private val themeKey = stringPreferencesKey("theme_mode")
 
@@ -31,8 +33,9 @@ class AppPreferences(private val context: Context) {
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
     init {
-        _themeMode.value = runBlocking {
-            context.prefsStore.data.first()[themeKey]
+    // Read in the background instead of blocking the constructor.
+        scope.launch {                 // ← needs a CoroutineScope
+            _themeMode.value = context.prefsStore.data.first()[themeKey]
                 ?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM
         }
     }

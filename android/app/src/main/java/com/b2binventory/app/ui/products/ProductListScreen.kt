@@ -76,7 +76,7 @@ class ProductListViewModel(private val api: ApiService, saved: SavedStateHandle)
         job?.cancel()
         job = viewModelScope.launch {
             if (debounce) delay(350)
-            _state.update { it.copy(loading = true, error = null) }
+            _state.update { it.copy(loading = it.items.isEmpty(), error = null) }
             fetch(0)
         }
     }
