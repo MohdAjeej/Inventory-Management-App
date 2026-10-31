@@ -3,11 +3,14 @@ package com.b2binventory.exception;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.jdbc.CannotGetJdbcConnectionException;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
@@ -101,6 +104,15 @@ public class ApiExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleMethod(HttpRequestMethodNotSupportedException e) {
         return build(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", e.getMessage(), null);
+    }
+
+    /** The database is down or out of connections: tell the client to retry instead of reporting a bug. */
+    @ExceptionHandler({CannotGetJdbcConnectionException.class, CannotCreateTransactionException.class,
+            DataAccessResourceFailureException.class})
+    public ResponseEntity<ErrorResponse> handleDatabaseDown(Exception e) {
+        log.error("Database unavailable", e);
+        return build(HttpStatus.SERVICE_UNAVAILABLE, "DATABASE_UNAVAILABLE",
+                "The database is not available right now. Try again in a moment.", null);
     }
 
     @ExceptionHandler(Exception.class)

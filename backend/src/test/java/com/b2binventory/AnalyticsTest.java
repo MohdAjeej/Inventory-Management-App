@@ -193,7 +193,7 @@ class AnalyticsTest extends IntegrationTest {
         sell(s, hot, 5, 100, today());
 
         String text = get(s, "/api/analytics/insights?from=" + today().minusDays(6) + "&to=" + today()).get("insights").toString();
-        assertThat(text).contains("You sold 5 pcs of Hot item");
+        assertThat(text).contains("You sold 5 PCS of Hot item");
         assertThat(text).contains("Idle item had no recorded sales");
         assertThat(text).contains("REPLENISH");
 

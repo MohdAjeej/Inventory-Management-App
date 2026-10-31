@@ -3,7 +3,7 @@ export const siteConfig = {
   name: "Inventory Platform",
   description:
     "Manage products, stock, sales, purchases, customers, suppliers and business-to-business invoices for any kind of business — from one workspace.",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://147.93.108.99:8082/",
   contact: {
     email: "hello@example.com",
     phone: "+00 0000 000000",

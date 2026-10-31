@@ -1,9 +1,6 @@
 package com.b2binventory.app.ui.trade
 
 import android.content.Context
-import android.graphics.Paint
-import android.graphics.Typeface
-import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,14 +8,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.core.content.FileProvider
+import com.b2binventory.app.data.remote.PartyDetails
 import com.b2binventory.app.data.remote.TradeInvoice
+import com.b2binventory.app.ui.common.AmountWords
 import com.b2binventory.app.ui.common.Fmt
+import com.b2binventory.app.ui.common.InvoicePdf
+import com.b2binventory.app.ui.common.InvoicePdfData
+import com.b2binventory.app.ui.common.InvoiceRow
+import com.b2binventory.app.ui.common.InvoiceTotal
 import com.b2binventory.app.ui.common.Pill
 import com.b2binventory.app.ui.common.tr
 import com.b2binventory.app.ui.theme.appColors
 import kotlinx.serialization.json.JsonElement
-import java.io.File
 
 /** Invoice statuses in plain words. */
 fun tradeStatusLabel(status: String, seller: Boolean): String = when (status) {
@@ -83,93 +84,69 @@ fun specsText(attributes: Map<String, JsonElement>, variantAttributes: Map<Strin
 /** Draws an A4 business invoice (seller, buyer, lines with size and unit, totals) and returns a shareable Uri. */
 object TradeInvoicePdf {
 
-    private const val WIDTH = 595
-    private const val HEIGHT = 842
-    private const val MARGIN = 40f
-
     fun create(context: Context, inv: TradeInvoice): Uri {
-        val doc = PdfDocument()
-        val text = Paint().apply { textSize = 9.5f; isAntiAlias = true }
-        val small = Paint(text).apply { textSize = 8f }
-        val bold = Paint(text).apply { typeface = Typeface.DEFAULT_BOLD }
-        val title = Paint(bold).apply { textSize = 18f }
-        var pageNo = 1
-        var page = doc.startPage(PdfDocument.PageInfo.Builder(WIDTH, HEIGHT, pageNo).create())
-        var canvas = page.canvas
-        var y = MARGIN + 10
-
-        fun newPageIfNeeded(space: Float) {
-            if (y + space > HEIGHT - MARGIN) {
-                doc.finishPage(page)
-                pageNo++
-                page = doc.startPage(PdfDocument.PageInfo.Builder(WIDTH, HEIGHT, pageNo).create())
-                canvas = page.canvas
-                y = MARGIN + 10
-            }
-        }
-
-        fun right(s: String, paint: Paint) = canvas.drawText(s, WIDTH - MARGIN - paint.measureText(s), y, paint)
         fun money(v: Double) = Fmt.money(v, inv.currencyCode)
-        fun clip(s: String, max: Int) = if (s.length > max) s.take(max - 1) + "…" else s
+        fun address(p: PartyDetails) = listOfNotNull(p.address, p.city, p.state, p.postalCode)
+            .filter { it.isNotBlank() }.joinToString(", ").ifEmpty { null }
+        val taxLabel = if (inv.currencyCode == "INR") "GSTIN" else "Tax ID"
+        val units = inv.lines.map { it.unitCode }.distinct()
 
-        canvas.drawText(inv.seller.name, MARGIN, y, title)
-        right(tr("TAX INVOICE"), bold); y += 16f
-        listOfNotNull(inv.seller.address, listOfNotNull(inv.seller.city, inv.seller.state, inv.seller.postalCode).joinToString(", ")
-            .ifEmpty { null }, inv.seller.phone?.let { tr("Phone: $it") }, inv.seller.taxId?.let { tr("Tax id $it") })
-            .forEach { canvas.drawText(it, MARGIN, y, text); y += 13f }
-        y += 6f
-        canvas.drawText(tr("Invoice: ${inv.invoiceNumber}"), MARGIN, y, bold)
-        right(tr("Date: ${Fmt.date(inv.invoiceDate)}"), text); y += 14f
-        canvas.drawText(tr(tradeStatusLabel(inv.status, true)), MARGIN, y, text); y += 20f
-
-        canvas.drawText(tr("Bill to"), MARGIN, y, bold); y += 14f
-        canvas.drawText(inv.buyer.name, MARGIN, y, text); y += 13f
-        listOfNotNull(inv.buyer.address, inv.buyer.city, inv.buyer.phone?.let { tr("Phone: $it") },
-            inv.buyer.taxId?.let { tr("Tax id $it") }).forEach { canvas.drawText(it, MARGIN, y, text); y += 13f }
-        y += 10f
-
-        val cols = floatArrayOf(MARGIN, 270f, 340f, 400f, 450f)
-        listOf("Item", "Qty", "Price", "Disc.", "Tax", "Amount").map { tr(it) }.forEachIndexed { i, h ->
-            if (i == 5) right(h, bold) else canvas.drawText(h, cols[i], y, bold)
+        val rows = inv.lines.map { l ->
+            InvoiceRow(
+                name = l.label,
+                detail = listOfNotNull(l.sku?.let { "SKU $it" }, specsText(l.attributes, l.variantAttributes),
+                    if (l.returnedQuantity > 0) "Returned ${Fmt.qty(l.returnedQuantity)} ${l.unitCode}" else null)
+                    .joinToString(" · ").ifEmpty { null },
+                qty = "${Fmt.qty(l.quantity)} ${l.unitCode}",
+                rate = Fmt.qty(l.unitPrice),
+                discount = if (l.discount > 0) Fmt.qty(l.discount) else null,
+                tax = if (l.taxAmount > 0) "${Fmt.qty(l.taxRate)}%" else null,
+                total = Fmt.qty(l.lineTotal),
+            )
         }
-        y += 6f
-        canvas.drawLine(MARGIN, y, WIDTH - MARGIN, y, text); y += 14f
-        inv.lines.forEach { l ->
-            newPageIfNeeded(40f)
-            canvas.drawText(clip(l.label, 44), cols[0], y, text)
-            canvas.drawText("${Fmt.qty(l.quantity)} ${l.unitCode}", cols[1], y, text)
-            canvas.drawText(Fmt.qty(l.unitPrice), cols[2], y, text)
-            canvas.drawText(if (l.discount > 0) Fmt.qty(l.discount) else "-", cols[3], y, text)
-            canvas.drawText(if (l.taxRate > 0) "${Fmt.qty(l.taxRate)}%" else "-", cols[4], y, text)
-            right(money(l.lineTotal), text)
-            y += 12f
-            val detail = listOfNotNull(l.sku?.let { tr("SKU $it") }, specsText(l.attributes, l.variantAttributes)).joinToString(" · ")
-            if (detail.isNotEmpty()) {
-                canvas.drawText(clip(detail, 95), cols[0] + 8, y, small); y += 11f
-            }
-            y += 3f
+        val totals = buildList {
+            if (inv.discountTotal > 0 || inv.taxTotal > 0) add(InvoiceTotal("Gross amount", money(inv.subtotal)))
+            if (inv.discountTotal > 0) add(InvoiceTotal("Discount", "- " + money(inv.discountTotal)))
+            if (inv.taxTotal > 0) add(InvoiceTotal("Tax", money(inv.taxTotal)))
+            add(InvoiceTotal("Total Amount", money(inv.total), strong = true))
         }
-        canvas.drawLine(MARGIN, y - 6f, WIDTH - MARGIN, y - 6f, text); y += 8f
+        val notes = listOfNotNull(
+            inv.notes?.let { "Notes" to it },
+            inv.deliveryNotes?.let { "Delivery" to it },
+            inv.cancelReason?.let { "Cancelled" to it },
+            inv.rejectionReason?.let { "Rejected" to it },
+        )
 
-        fun total(label: String, value: String, paint: Paint = text) {
-            newPageIfNeeded(16f)
-            canvas.drawText(tr(label), 340f, y, paint)
-            right(value, paint)
-            y += 15f
-        }
-        total("Subtotal", money(inv.subtotal))
-        if (inv.discountTotal > 0) total("Discount", "- " + money(inv.discountTotal))
-        if (inv.taxTotal > 0) total("Tax", money(inv.taxTotal))
-        total("Total", money(inv.total), bold)
-        y += 10f
-        inv.notes?.let { newPageIfNeeded(14f); canvas.drawText(clip(tr("Notes: $it"), 100), MARGIN, y, text); y += 14f }
-        inv.deliveryNotes?.let { newPageIfNeeded(14f); canvas.drawText(clip(tr("Delivery: $it"), 100), MARGIN, y, text); y += 14f }
-        doc.finishPage(page)
-
-        val dir = File(context.cacheDir, "exports").apply { mkdirs() }
-        val file = File(dir, "invoice-${inv.invoiceNumber}.pdf")
-        file.outputStream().use { doc.writeTo(it) }
-        doc.close()
-        return FileProvider.getUriForFile(context, context.packageName + ".files", file)
+        return InvoicePdf.create(context, InvoicePdfData(
+            fileName = "invoice-${inv.invoiceNumber}.pdf",
+            title = if (inv.taxTotal > 0) "TAX INVOICE" else "BILL OF SUPPLY",
+            copyLabel = when (inv.status) {
+                "CANCELLED" -> "CANCELLED"
+                "REJECTED" -> "REJECTED"
+                "DRAFT" -> "DRAFT"
+                else -> "ORIGINAL FOR RECIPIENT"
+            },
+            sellerName = inv.seller.name,
+            sellerTaxId = inv.seller.taxId?.let { taxLabel to it },
+            sellerPhone = inv.seller.phone,
+            sellerAddress = address(inv.seller),
+            meta = listOf("Invoice No." to inv.invoiceNumber, "Invoice Date" to Fmt.date(inv.invoiceDate),
+                "Status" to tr(tradeStatusLabel(inv.status, true))),
+            billToName = inv.buyer.name,
+            billToLines = listOfNotNull(
+                inv.buyer.phone?.let { "Mobile" to it },
+                inv.buyer.taxId?.let { taxLabel to it },
+                address(inv.buyer)?.let { null to it },
+                inv.buyer.state?.let { "Place of Supply" to it },
+            ),
+            sideTitle = inv.warehouseName?.let { "Dispatch From" },
+            sideLines = listOfNotNull(inv.warehouseName?.let { null to it }),
+            rows = rows,
+            qtyTotal = if (units.size == 1) "${Fmt.qty(inv.lines.sumOf { it.quantity })} ${units.first()}" else null,
+            subtotal = money(inv.total),
+            totals = totals,
+            amountInWords = AmountWords.of(inv.total, inv.currencyCode),
+            notes = notes,
+        ))
     }
 }

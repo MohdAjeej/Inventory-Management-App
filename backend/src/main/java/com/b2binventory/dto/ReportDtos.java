@@ -1,6 +1,8 @@
 package com.b2binventory.dto;
 
 import com.b2binventory.dto.AnalyticsDtos.InventoryValue;
+import com.b2binventory.dto.AnalyticsDtos.Metric;
+import com.b2binventory.dto.AnalyticsDtos.Period;
 import com.b2binventory.dto.AnalyticsDtos.ProductRef;
 import com.b2binventory.dto.AnalyticsDtos.SalesSnapshot;
 import com.b2binventory.dto.ProductDtos.StockStatus;
@@ -39,8 +41,10 @@ public final class ReportDtos {
      * Sales figures for the home screen; only sent to members with ANALYTICS_VIEW. "This month" runs from the
      * first of the month to today in the business timezone.
      */
+    /** monthRevenue and monthGrossProfit compare with the previous period of the same length (growth is null without one). */
     public record SalesHighlights(SalesSnapshot today, SalesSnapshot month, ProductRef monthBestSeller,
-                                  ProductRef monthLowestSeller, long monthProductsWithNoSales, InventoryValue inventory) {
+                                  ProductRef monthLowestSeller, long monthProductsWithNoSales, InventoryValue inventory,
+                                  Period monthPeriod, Metric monthRevenue, Metric monthGrossProfit) {
     }
 
     public record DashboardResponse(

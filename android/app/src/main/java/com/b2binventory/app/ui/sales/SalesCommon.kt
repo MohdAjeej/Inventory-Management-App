@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -80,15 +81,20 @@ object Calc {
     fun money(v: BigDecimal, currency: String) = Fmt.money(v.toDouble(), currency)
 }
 
-/** Full-screen product search used by the sale and purchase screens. */
+/**
+ * Full-screen search over existing inventory, used by the sale and purchase screens. [onCreateNew] (when the member
+ * may create products) opens the separate Add Product flow for an item that is not in inventory yet.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProductPickerDialog(api: ApiService, title: String, onPick: (ProductSummary) -> Unit, onDismiss: () -> Unit) {
+fun ProductPickerDialog(api: ApiService, title: String, onPick: (ProductSummary) -> Unit, onDismiss: () -> Unit,
+                        onCreateNew: (() -> Unit)? = null) {
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<ProductSummary>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(query) {
+    var attempt by remember { mutableIntStateOf(0) }
+    LaunchedEffect(query, attempt) {
         delay(300)
         loading = true
         when (val r = apiCall { api.products(q = query.blankToNull(), size = 40) }) {
@@ -100,13 +106,24 @@ fun ProductPickerDialog(api: ApiService, title: String, onPick: (ProductSummary)
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss,
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize()) {
-            Scaffold(topBar = { AppTopBar(title, onBack = onDismiss) }) { padding ->
+            Scaffold(topBar = {
+                AppTopBar(title, onBack = onDismiss) {
+                    onCreateNew?.let { TextButton(onClick = it) { Icon(Icons.Default.Add, null); Text("New product") } }
+                }
+            }) { padding ->
                 Column(Modifier.padding(padding)) {
                     SearchField(query, { query = it }, "Search name, SKU or barcode", Modifier.padding(16.dp, 8.dp))
                     if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-                    error?.let { ErrorBanner(it) }
+                    error?.let {
+                        ErrorBanner(it)
+                        TextButton(onClick = { attempt++ }, Modifier.padding(horizontal = 8.dp)) { Text("Try again") }
+                    }
                     LazyColumn {
-                        if (!loading && results.isEmpty()) item { EmptyState("No products found", "Try another name or code.") }
+                        if (!loading && error == null && results.isEmpty()) item {
+                            EmptyState("No products found",
+                                if (onCreateNew != null) "Try another name or code, or add it as a new product." else "Try another name or code.",
+                                action = onCreateNew?.let { create -> { Button(onClick = create) { Text("Add new product") } } })
+                        }
                         items(results, key = { it.id }) { p ->
                             ListItem(
                                 headlineContent = { Text(p.name, fontWeight = FontWeight.Medium) },

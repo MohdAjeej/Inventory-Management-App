@@ -233,6 +233,22 @@ class ApiContractTest {
     }
 
     @Test
+    fun unitsCarryCategoryAndStandardFlag() {
+        val text = """[{"id":7,"code":"KG","name":"Kilogram","decimals":3,"archived":false,"category":"WEIGHT",
+            "baseFactor":1,"standard":true},{"id":90,"code":"TOLA","name":"Tola","decimals":3,"archived":false,
+            "category":"WEIGHT","baseFactor":0.0116638,"standard":false},{"id":91,"code":"BOX","name":"Box"}]"""
+        val units = JsonConfig.json.decodeFromString(ListSerializer(UnitDto.serializer()), text)
+        assertTrue(units[0].standard)
+        assertEquals("WEIGHT", units[1].category)
+        assertEquals(0.0116638, units[1].baseFactor!!, 1e-9)
+        assertEquals("Kilogram (KG)", units[0].label)
+        // Older servers send none of the new fields.
+        assertEquals("OTHER", units[2].category)
+        assertNull(units[2].baseFactor)
+        assertFalse(units[2].standard)
+    }
+
+    @Test
     fun productRequestEncodesAttributesAsJson() {
         val request = ProductRequest(name = "X", attributes = mapOf("sizes" to kotlinx.serialization.json.JsonArray(
             listOf(kotlinx.serialization.json.JsonPrimitive("M")))))

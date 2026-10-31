@@ -339,11 +339,14 @@ public class TradeReceivingService {
 
     /** Adds the invoiced product to the buyer's catalogue with the same name, variant, unit, codes and specifications. */
     private ProductVariant createProduct(TradeInvoiceLine l, Long buyerId, Long supplierId) {
-        Unit unit = units.findByBusinessIdAndCodeIgnoreCase(buyerId, l.getUnitCode()).orElseGet(() -> {
-            Long unitId = unitService.create(new UnitRequest(l.getUnitCode(), l.getUnitName(), l.getUnitDecimals())).id();
+        // The buyer's own or a standard unit with the same code; otherwise a new custom unit (renamed if the name is taken).
+        Unit unit = units.findVisibleByCode(buyerId, l.getUnitCode()).stream().findFirst().orElseGet(() -> {
+            String name = units.findVisibleByName(buyerId, l.getUnitName()).isEmpty()
+                    ? l.getUnitName() : l.getUnitName() + " (" + l.getUnitCode() + ")";
+            Long unitId = unitService.create(new UnitRequest(l.getUnitCode(), name, l.getUnitDecimals())).id();
             return units.findByIdAndBusinessId(unitId, buyerId).orElseThrow();
         });
-        if (unit.isArchived()) unit.setArchived(false);
+        if (unit.isArchived() && !unit.isStandard()) unit.setArchived(false);
         Long categoryId = null;
         if (l.getCategoryName() != null && !l.getCategoryName().isBlank()) {
             categoryId = categories.findAllForBusiness(buyerId).stream()

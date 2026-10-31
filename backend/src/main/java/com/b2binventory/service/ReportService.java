@@ -267,7 +267,8 @@ public class ReportService {
                 new com.b2binventory.dto.AnalyticsDtos.SalesSnapshot(month.sales().value().longValue(), month.units().value(),
                         month.revenue().value(), month.grossProfit() != null ? month.grossProfit().value() : null,
                         month.period().currencyCode()),
-                month.bestSeller(), month.lowestSeller(), month.productsWithNoSales(), month.inventory());
+                month.bestSeller(), month.lowestSeller(), month.productsWithNoSales(), month.inventory(),
+                month.period(), month.revenue(), month.grossProfit());
     }
 
     private static Instant toInstant(Object o) {

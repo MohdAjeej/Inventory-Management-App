@@ -74,9 +74,6 @@ fun DashboardScreen(
     onOpenProducts: (String?) -> Unit,
     onOpenProduct: (Long) -> Unit,
     onAddProduct: () -> Unit,
-    onStockOperation: (String) -> Unit,
-    onRecordSale: () -> Unit,
-    onRecordPurchase: () -> Unit,
     onReports: () -> Unit,
     onStockActivity: () -> Unit,
     onNotifications: () -> Unit,
@@ -117,31 +114,28 @@ fun DashboardScreen(
                 ResponsiveContent {
                     LazyColumn(
                         contentPadding = PaddingValues(start = Spacing.l, end = Spacing.l, bottom = Spacing.xl),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.l),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.m),
                     ) {
                         item {
-                            Text("Hello, ${me?.fullName?.substringBefore(' ') ?: ""}", style = MaterialTheme.typography.headlineSmall)
+                            Text("Hello, ${me?.fullName?.substringBefore(' ') ?: ""}", style = MaterialTheme.typography.titleLarge)
                             Text("Here is how your stock looks today.", style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         item { KpiGrid(d, wide, onOpenProducts) }
-                        item {
-                            QuickActions(wide, onAddProduct, onStockOperation, onRecordSale, onRecordPurchase,
-                                { onOpenProducts(null) }, onReports, onStockActivity,
-                                onBusinessInvoice = { onTrade(com.b2binventory.app.ui.navigation.Routes.tradeNew()) })
-                        }
+                        d.sales?.let { h -> item { SalesProfitRow(h, onReports) } }
                         if (me?.can("SALE_RECORD") == true || me?.can("PURCHASE_MANAGE") == true) {
                             item { com.b2binventory.app.ui.trade.TradeSummaryCard(onOpen = onTrade) }
                         }
                         if (d.activeProducts == 0L) {
                             item { GetStarted(onAddProduct) }
                         }
-                        d.sales?.let { h -> item { SalesHighlightsCard(h, wide, onReports, onOpenProduct) } }
+                        d.sales?.let { h -> item { SalesHighlightsCard(h, onReports, onOpenProduct) } }
 
                         val alerts = d.outOfStockItems + d.lowStockItems
                         if (alerts.isNotEmpty()) {
                             item {
-                                SectionCard("Needs attention", actionLabel = "View all", onAction = { onOpenProducts("LOW_STOCK") }) {
+                                SectionCard("Needs attention", actionLabel = "View all", onAction = { onOpenProducts("LOW_STOCK") },
+                                    contentPadding = Spacing.m) {
                                     alerts.take(6).forEach { a ->
                                         ProductLine(a.productName, "${Fmt.qty(a.available)} ${a.unit} available · min ${a.minStock}",
                                             a.status) { onOpenProduct(a.productId) }
@@ -151,7 +145,7 @@ fun DashboardScreen(
                         }
                         if (d.categories.any { it.quantity > 0 }) {
                             item {
-                                SectionCard("Stock by category") {
+                                SectionCard("Stock by category", contentPadding = Spacing.m) {
                                     HorizontalBarChart(
                                         d.categories.sortedByDescending { it.quantity }.take(6).map {
                                             BarItem(it.categoryName, it.quantity, "${Fmt.qty(it.quantity)} · ${it.productCount} products", it.categoryId)
@@ -162,7 +156,7 @@ fun DashboardScreen(
                         }
                         if (d.mostStocked.isNotEmpty()) {
                             item {
-                                SectionCard("Most-stocked products") {
+                                SectionCard("Most-stocked products", contentPadding = Spacing.m) {
                                     d.mostStocked.forEach { p ->
                                         ProductLine(p.productName, "${Fmt.qty(p.available)} ${p.unit} available", p.status) {
                                             onOpenProduct(p.productId)
@@ -173,7 +167,8 @@ fun DashboardScreen(
                         }
                         if (recentlyAdded.isNotEmpty()) {
                             item {
-                                SectionCard("Recently added products", actionLabel = "View all", onAction = { onOpenProducts(null) }) {
+                                SectionCard("Recently added products", actionLabel = "View all", onAction = { onOpenProducts(null) },
+                                    contentPadding = Spacing.m) {
                                     recentlyAdded.forEach { p ->
                                         ProductLine(p.name, "${Fmt.qty(p.stock.available)} ${p.unitCode} available" +
                                             (p.categoryName?.let { " · $it" } ?: ""), p.status) { onOpenProduct(p.id) }
@@ -183,14 +178,15 @@ fun DashboardScreen(
                         }
                         if (d.recentMovements.isNotEmpty()) {
                             item {
-                                SectionCard("Recent stock activity", actionLabel = "See all", onAction = onStockActivity) {
+                                SectionCard("Recent stock activity", actionLabel = "See all", onAction = onStockActivity,
+                                    contentPadding = Spacing.m) {
                                     d.recentMovements.take(6).forEach { m -> MovementRow(m) { onOpenProduct(m.productId) } }
                                 }
                             }
                         }
                         if (d.warehouses.size > 1) {
                             item {
-                                SectionCard("By warehouse") {
+                                SectionCard("By warehouse", contentPadding = Spacing.m) {
                                     d.warehouses.forEach { w ->
                                         InfoRow(w.warehouseName, "${w.productCount} products · ${Fmt.qty(w.quantity)}")
                                     }
@@ -255,14 +251,18 @@ private fun BusinessSwitcher(onSwitch: (Long) -> Unit) {
 private fun KpiGrid(d: Dashboard, wide: Boolean, onOpenProducts: (String?) -> Unit) {
     val c = MaterialTheme.appColors
     val tiles = listOf<@Composable (Modifier) -> Unit>(
-        { m -> StatTile("Total products", d.activeProducts.toString(), Icons.Default.Inventory2, MaterialTheme.colorScheme.primary, m) { onOpenProducts(null) } },
-        { m -> StatTile("Total stock quantity", Fmt.qty(d.totalQuantity), Icons.Default.Layers, MaterialTheme.colorScheme.tertiary, m) { onOpenProducts(null) } },
-        { m -> StatTile("Low stock", d.lowStockCount.toString(), Icons.Default.WarningAmber, c.warning, m) { onOpenProducts("LOW_STOCK") } },
-        { m -> StatTile("Out of stock", d.outOfStockCount.toString(), Icons.Default.RemoveShoppingCart, c.danger, m) { onOpenProducts("OUT_OF_STOCK") } },
+        { m -> StatTile("Total products", d.activeProducts.toString(), Icons.Default.Inventory2, MaterialTheme.colorScheme.primary, m,
+            compact = true, onClick = { onOpenProducts(null) }) },
+        { m -> StatTile("Total stock quantity", Fmt.qty(d.totalQuantity), Icons.Default.Layers, MaterialTheme.colorScheme.tertiary, m,
+            compact = true, onClick = { onOpenProducts(null) }) },
+        { m -> StatTile("Low stock", d.lowStockCount.toString(), Icons.Default.WarningAmber, c.warning, m,
+            compact = true, onClick = { onOpenProducts("LOW_STOCK") }) },
+        { m -> StatTile("Out of stock", d.outOfStockCount.toString(), Icons.Default.RemoveShoppingCart, c.danger, m,
+            compact = true, onClick = { onOpenProducts("OUT_OF_STOCK") }) },
     )
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.m)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
         tiles.chunked(if (wide) 4 else 2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.m)) { row.forEach { it(Modifier.weight(1f)) } }
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) { row.forEach { it(Modifier.weight(1f)) } }
         }
     }
 }
@@ -270,7 +270,7 @@ private fun KpiGrid(d: Dashboard, wide: Boolean, onOpenProducts: (String?) -> Un
 @Composable
 private fun GetStarted(onAddProduct: () -> Unit) {
     val me = LocalMe.current
-    SectionCard("Get started") {
+    SectionCard("Get started", contentPadding = Spacing.m) {
         listOf(
             Icons.Default.AddBox to "1. Add your products with their opening stock.",
             Icons.Default.SwapVert to "2. Add or reduce stock whenever goods come in or go out.",
@@ -289,63 +289,83 @@ private fun GetStarted(onAddProduct: () -> Unit) {
     }
 }
 
-/** The most common tasks, filtered by what the member is allowed to do. */
+/**
+ * Sales and profit for this month, from recorded sales (members who can view analytics). Profit is shown only when
+ * the server can work it out from known costs, and a trend only when there is an earlier period to compare with.
+ */
 @Composable
-private fun QuickActions(
-    wide: Boolean,
-    onAddProduct: () -> Unit,
-    onStockOperation: (String) -> Unit,
-    onRecordSale: () -> Unit,
-    onRecordPurchase: () -> Unit,
-    onInventory: () -> Unit,
-    onReports: () -> Unit,
-    onStockActivity: () -> Unit,
-    onBusinessInvoice: () -> Unit = {},
-) {
-    val me = LocalMe.current
-    val c = MaterialTheme.appColors
-    val primary = MaterialTheme.colorScheme.primary
-    data class Action(val label: String, val icon: ImageVector, val tint: Color, val onClick: () -> Unit)
-    val actions = buildList {
-        if (me?.can("PRODUCT_CREATE") == true) add(Action("Add Product", Icons.Default.AddBox, primary, onAddProduct))
-        if (me?.can("STOCK_ADD") == true) add(Action("Add Stock", Icons.Default.AddCircleOutline, c.success) { onStockOperation("ADD") })
-        if (me?.can("STOCK_REDUCE") == true) add(Action("Reduce Stock", Icons.Default.RemoveCircleOutline, c.warning) { onStockOperation("REDUCE") })
-        add(Action("View Inventory", Icons.Default.Inventory2, primary, onInventory))
-        if (me?.can("REPORT_VIEW") == true || me?.can("ANALYTICS_VIEW") == true) add(Action("View Reports", Icons.Default.Insights, primary, onReports))
-        if (me?.can("SALE_RECORD") == true) add(Action("Record Sale", Icons.Default.PointOfSale, MaterialTheme.colorScheme.tertiary, onRecordSale))
-        if (me?.can("PURCHASE_MANAGE") == true) add(Action("Record Purchase", Icons.Default.LocalShipping, MaterialTheme.colorScheme.tertiary, onRecordPurchase))
-        if (me?.can("SALE_RECORD") == true) add(Action("Business Invoice", Icons.Default.ReceiptLong, primary, onBusinessInvoice))
-        add(Action("Stock Activity", Icons.Default.History, primary, onStockActivity))
-    }
-    val perRow = if (wide) 4 else 3
+private fun SalesProfitRow(h: SalesHighlights, onAnalytics: () -> Unit) {
+    val cur = h.month.currencyCode
+    val period = h.monthPeriod?.let { Fmt.dateRange(it.from, it.to) }?.takeIf { it.isNotEmpty() } ?: tr("This month")
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
-        SectionHeader("Quick actions", modifier = Modifier)
-        actions.chunked(perRow).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-                row.forEach { a -> ActionTile(a.label, a.icon, a.onClick, Modifier.weight(1f), tint = a.tint) }
-                repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
+        SectionHeader("Sales and profit", "Analytics", onAnalytics, Modifier)
+        BoxWithConstraints {
+            val sales: @Composable (Modifier) -> Unit = { m ->
+                SummaryCard("Sales", Fmt.money(h.month.revenue, cur), period, h.monthRevenue?.growthPercent,
+                    Icons.Default.PointOfSale, MaterialTheme.colorScheme.primary, m, onAnalytics)
+            }
+            val profit: @Composable (Modifier) -> Unit = { m ->
+                val gp = h.month.grossProfit
+                SummaryCard("Profit", gp?.let { Fmt.money(it, cur) } ?: tr("Unavailable"),
+                    if (gp == null) tr("Add purchase costs to see profit") else period,
+                    if (gp == null) null else h.monthGrossProfit?.growthPercent,
+                    Icons.AutoMirrored.Filled.TrendingUp, StatusColors.ok, m, onAnalytics)
+            }
+            // Side by side on phones and tablets; stacked only on very narrow screens.
+            if (maxWidth < 300.dp) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                    sales(Modifier.fillMaxWidth())
+                    profit(Modifier.fillMaxWidth())
+                }
+            } else {
+                Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                    sales(Modifier.weight(1f).fillMaxHeight())
+                    profit(Modifier.weight(1f).fillMaxHeight())
+                }
             }
         }
     }
 }
 
-/** Sales, profit and stock value for members who can view analytics. */
+/** A compact money figure with its period and, when there is earlier data, the change against the previous period. */
 @Composable
-private fun SalesHighlightsCard(h: SalesHighlights, wide: Boolean, onAnalytics: () -> Unit, onOpenProduct: (Long) -> Unit) {
-    val cur = h.today.currencyCode
-    val tiles = listOf<@Composable (Modifier) -> Unit>(
-        { m -> StatTile("Today's sales", Fmt.money(h.today.revenue, cur), Icons.Default.PointOfSale, MaterialTheme.colorScheme.primary, m, onClick = onAnalytics) },
-        { m -> StatTile("This month's sales", Fmt.money(h.month.revenue, cur), Icons.Default.CalendarMonth, MaterialTheme.colorScheme.primary, m, onClick = onAnalytics) },
-        { m -> StatTile("Units sold this month", Fmt.qty(h.month.units), Icons.Default.ShoppingBag, MaterialTheme.colorScheme.tertiary, m, onClick = onAnalytics) },
-        { m -> StatTile("Gross profit this month", h.month.grossProfit?.let { Fmt.money(it, cur) } ?: "Unavailable",
-            Icons.AutoMirrored.Filled.TrendingUp, StatusColors.ok, m, onClick = onAnalytics) },
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.m)) {
-        SectionHeader("Sales and profit", "Analytics", onAnalytics, Modifier)
-        tiles.chunked(if (wide) 4 else 2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.m)) { row.forEach { it(Modifier.weight(1f)) } }
+private fun SummaryCard(title: String, amount: String, period: String, growth: Double?, icon: ImageVector, tint: Color,
+                        modifier: Modifier, onClick: () -> Unit) {
+    val c = MaterialTheme.appColors
+    AppCard(modifier, onClick = onClick) {
+        Column(Modifier.padding(Spacing.m), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconBadge(icon, tint, 28.dp)
+                Spacer(Modifier.width(Spacing.s))
+                Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1)
+            }
+            Spacer(Modifier.height(Spacing.xs))
+            androidx.compose.material3.Text(amount, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            androidx.compose.material3.Text(period, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (growth != null) {
+                val up = growth >= 0
+                androidx.compose.material3.Text((if (up) "▲ " else "▼ ") + "${Fmt.qty(kotlin.math.abs(growth))}% " + tr("vs previous period"),
+                    style = MaterialTheme.typography.labelSmall, color = if (up) c.success else c.danger, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis)
+            }
         }
-        SectionCard("This month") {
+    }
+}
+
+/** Today's sales, units sold and this month's best and slowest sellers. */
+@Composable
+private fun SalesHighlightsCard(h: SalesHighlights, onAnalytics: () -> Unit, onOpenProduct: (Long) -> Unit) {
+    val cur = h.today.currencyCode
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+            StatTile("Today's sales", Fmt.money(h.today.revenue, cur), Icons.Default.Today, MaterialTheme.colorScheme.primary,
+                Modifier.weight(1f), onClick = onAnalytics, compact = true)
+            StatTile("Units sold this month", Fmt.qty(h.month.units), Icons.Default.ShoppingBag, MaterialTheme.colorScheme.tertiary,
+                Modifier.weight(1f), onClick = onAnalytics, compact = true)
+        }
+        SectionCard("This month", contentPadding = Spacing.m) {
             h.monthBestSeller?.let { b ->
                 Row(Modifier.fillMaxWidth().clickable { onOpenProduct(b.productId) }.padding(vertical = Spacing.xs)) {
                     Text("Best seller", Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -373,7 +393,7 @@ private fun ProductLine(name: String, detail: String, status: String, onClick: (
         Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).clickable(onClick = onClick).padding(vertical = Spacing.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconBadge(stockStatusIcon(status), statusColor(status), 36.dp)
+        IconBadge(stockStatusIcon(status), statusColor(status), 32.dp)
         Spacer(Modifier.width(Spacing.m))
         Column(Modifier.weight(1f)) {
             androidx.compose.material3.Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)

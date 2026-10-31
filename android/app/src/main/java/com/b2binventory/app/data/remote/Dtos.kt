@@ -188,11 +188,31 @@ data class PermissionCatalog(
 
 // ---------------------------------------------------------------- catalog
 
+/**
+ * A unit of measure. standard units are shared by every business and read-only; the others are the business's own.
+ * baseFactor: how many of the category's base unit one of this unit equals (null when it has no fixed size).
+ */
 @Serializable
-data class UnitDto(val id: Long, val code: String, val name: String, val decimals: Int = 0, val archived: Boolean = false)
+data class UnitDto(
+    val id: Long,
+    val code: String,
+    val name: String,
+    val decimals: Int = 0,
+    val archived: Boolean = false,
+    val category: String = "OTHER",
+    val baseFactor: Double? = null,
+    val standard: Boolean = false,
+) {
+    val label: String get() = "$name ($code)"
+}
 
 @Serializable
-data class UnitRequest(val code: String, val name: String, val decimals: Int)
+data class UnitRequest(val code: String, val name: String, val decimals: Int, val category: String = "OTHER",
+                       val baseFactor: Double? = null)
+
+/** What units measure (weight, length…); baseUnitCode is the unit with base factor 1. */
+@Serializable
+data class UnitCategoryDto(val code: String, val label: String, val baseUnitCode: String? = null)
 
 @Serializable
 data class Conversion(
@@ -615,6 +635,10 @@ data class SalesHighlights(
     val monthLowestSeller: ProductRef? = null,
     val monthProductsWithNoSales: Long = 0,
     val inventory: InventoryValue = InventoryValue(),
+    /** This month so far; revenue and profit compare with the previous period of the same length. */
+    val monthPeriod: AnalyticsPeriod? = null,
+    val monthRevenue: Metric? = null,
+    val monthGrossProfit: Metric? = null,
 )
 
 /** Stock movement totals for a period (GET api/reports/movement-summary). */

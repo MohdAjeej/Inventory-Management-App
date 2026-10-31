@@ -1,6 +1,7 @@
 package com.b2binventory.controller;
 
 import com.b2binventory.dto.CatalogDtos.*;
+import com.b2binventory.entity.UnitCategory;
 import com.b2binventory.service.AttributeService;
 import com.b2binventory.service.CategoryService;
 import com.b2binventory.service.UnitService;
@@ -30,9 +31,17 @@ public class CatalogController {
 
     // ---- Units ----
 
+    /** Standard units and the business's custom units; q searches the name and code. */
     @GetMapping("/units")
-    public List<UnitResponse> units(@RequestParam(defaultValue = "false") boolean includeArchived) {
-        return units.list(includeArchived);
+    public List<UnitResponse> units(@RequestParam(defaultValue = "false") boolean includeArchived,
+                                    @RequestParam(required = false) String q,
+                                    @RequestParam(required = false) UnitCategory category) {
+        return units.list(includeArchived, q, category);
+    }
+
+    @GetMapping("/unit-categories")
+    public List<UnitCategoryResponse> unitCategories() {
+        return units.categories();
     }
 
     @PostMapping("/units")

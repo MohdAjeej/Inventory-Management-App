@@ -454,10 +454,11 @@ fun SectionCard(
     modifier: Modifier = Modifier,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    contentPadding: Dp = Spacing.l,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     AppCard(modifier) {
-        Column(Modifier.padding(Spacing.l), verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
+        Column(Modifier.padding(contentPadding), verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
             if (title != null) SectionHeader(title, actionLabel, onAction, Modifier)
             content()
         }
@@ -639,7 +640,11 @@ fun FormColumn(padding: PaddingValues, content: @Composable ColumnScope.() -> Un
 /** Metric card: tinted icon, large value and a label; the whole card is clickable when [onClick] is set. */
 @Composable
 fun StatTile(label: String, value: String, icon: ImageVector, color: Color, modifier: Modifier = Modifier,
-             supporting: String? = null, onClick: (() -> Unit)? = null) {
+             supporting: String? = null, onClick: (() -> Unit)? = null, compact: Boolean = false) {
+    if (compact) {
+        CompactStatTile(label, value, icon, color, modifier, supporting, onClick)
+        return
+    }
     AppCard(modifier, onClick = onClick) {
         Column(Modifier.padding(Spacing.l)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -656,6 +661,29 @@ fun StatTile(label: String, value: String, icon: ImageVector, color: Color, modi
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (supporting != null) {
                 Text(supporting, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1)
+            }
+        }
+    }
+}
+
+/** Dense variant of [StatTile] for dashboards: icon beside the figure, one-line label. */
+@Composable
+private fun CompactStatTile(label: String, value: String, icon: ImageVector, color: Color, modifier: Modifier,
+                            supporting: String?, onClick: (() -> Unit)?) {
+    AppCard(modifier, onClick = onClick) {
+        Column(Modifier.padding(Spacing.m)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconBadge(icon, color, 28.dp)
+                Spacer(Modifier.width(Spacing.s))
+                androidx.compose.material3.Text(value, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.height(Spacing.xs))
+            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (supporting != null) {
+                Text(supporting, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis)
             }
         }
     }

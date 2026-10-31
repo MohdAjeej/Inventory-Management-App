@@ -69,6 +69,10 @@ class BackupTest extends IntegrationTest {
         assertThat(newProductId).isNotEqualTo(productId);
         Response newProduct = get(copy, "/api/products/" + newProductId);
         assertThat(available(newProduct)).isEqualTo(stockBefore);
+        // The product keeps the shared standard unit rather than a copy of it.
+        assertThat(newProduct.get("baseUnit").get("standard").asBoolean()).isTrue();
+        assertThat(newProduct.get("baseUnit").get("id").asLong())
+                .isEqualTo(get(admin, "/api/products/" + productId).get("baseUnit").get("id").asLong());
         assertThat(newProduct.get("averageCost").decimalValue())
                 .isEqualByComparingTo(get(admin, "/api/products/" + productId).get("averageCost").decimalValue());
 

@@ -291,13 +291,13 @@ public class ProductService {
         }
         Unit unit;
         if (r.baseUnitId() != null) {
-            unit = units.findByIdAndBusinessId(r.baseUnitId(), p.getBusinessId())
+            unit = units.findVisibleById(r.baseUnitId(), p.getBusinessId())
                     .orElseThrow(() -> new NotFoundException("Unit", r.baseUnitId()));
         } else if (p.getBaseUnit() != null) {
             unit = p.getBaseUnit();
         } else {
-            unit = units.findByBusinessIdAndCodeIgnoreCase(p.getBusinessId(), "pcs")
-                    .or(() -> units.findByBusinessIdAndArchivedFalseOrderByNameAsc(p.getBusinessId()).stream().findFirst())
+            unit = units.findVisibleByCode(p.getBusinessId(), "PCS").stream().filter(u -> !u.isArchived()).findFirst()
+                    .or(() -> units.findVisible(p.getBusinessId(), false).stream().findFirst())
                     .orElseThrow(() -> new BadRequestException("Validation failed", Map.of("baseUnitId", "Choose a unit")));
         }
         if (unit.isArchived() && (p.getBaseUnit() == null || !p.getBaseUnit().getId().equals(unit.getId()))) {

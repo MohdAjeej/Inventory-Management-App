@@ -17,6 +17,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.b2binventory.app.data.remote.*
+import com.b2binventory.app.ui.catalog.UnitDialog
+import com.b2binventory.app.ui.catalog.UnitPickerField
+import com.b2binventory.app.ui.catalog.unitRequest
 import com.b2binventory.app.ui.common.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -66,6 +69,10 @@ class ProductFormViewModel(private val api: ApiService, saved: SavedStateHandle)
     val categories = _categories.asStateFlow()
     private val _units = MutableStateFlow<List<UnitDto>>(emptyList())
     val units = _units.asStateFlow()
+    private val _unitCategories = MutableStateFlow<List<UnitCategoryDto>>(emptyList())
+    val unitCategories = _unitCategories.asStateFlow()
+    private val _unitErrors = MutableStateFlow<Map<String, String>>(emptyMap())
+    val unitErrors = _unitErrors.asStateFlow()
     private val _warehouses = MutableStateFlow<List<Warehouse>>(emptyList())
     val warehouses = _warehouses.asStateFlow()
 
@@ -78,17 +85,21 @@ class ProductFormViewModel(private val api: ApiService, saved: SavedStateHandle)
         viewModelScope.launch {
             val result = apiCall {
                 val cats = api.categories().flatten()
-                val units = api.units()
                 val warehouses = api.warehouses()
                 val product = editId?.let { api.product(it) }
+                // An archived unit stays selectable for the product that already uses it.
+                val units = api.units().let { list ->
+                    if (product == null || list.any { it.id == product.baseUnit.id }) list else list + product.baseUnit
+                }
                 val schema = api.formSchema(product?.categoryId)
                 _categories.value = cats
                 _units.value = units
+                _unitCategories.value = api.unitCategories()
                 _warehouses.value = warehouses
                 _schema.value = schema
                 _form.value = if (product == null) {
                     ProductForm(
-                        unitId = units.firstOrNull { it.code == "pcs" }?.id ?: units.firstOrNull()?.id,
+                        unitId = units.firstOrNull { it.code.equals("PCS", ignoreCase = true) }?.id ?: units.firstOrNull()?.id,
                         warehouseId = warehouses.firstOrNull { it.isDefault }?.id ?: warehouses.firstOrNull()?.id,
                     )
                 } else {
@@ -127,6 +138,30 @@ class ProductFormViewModel(private val api: ApiService, saved: SavedStateHandle)
                 is ApiResult.Err -> _state.update { it.copy(error = r.message) }
             }
         }
+    }
+
+    /** Creates a custom unit and selects it for this product. */
+    fun addUnit(code: String, name: String, decimals: Int, category: String, baseFactor: String, onDone: () -> Unit) {
+        val (request, errors) = unitRequest(code, name, decimals, category, baseFactor)
+        if (request == null) {
+            _unitErrors.value = errors
+            return
+        }
+        viewModelScope.launch {
+            when (val r = apiCall { api.createUnit(request) }) {
+                is ApiResult.Ok -> {
+                    _unitErrors.value = emptyMap()
+                    _units.value = (apiCall { api.units() } as? ApiResult.Ok)?.value ?: (_units.value + r.value)
+                    _form.update { it.copy(unitId = r.value.id) }
+                    onDone()
+                }
+                is ApiResult.Err -> _unitErrors.value = r.fieldErrors.ifEmpty { mapOf("code" to r.message) }
+            }
+        }
+    }
+
+    fun clearUnitErrors() {
+        _unitErrors.value = emptyMap()
     }
 
     fun setAttribute(key: String, value: AttrValue) = _form.update { it.copy(attributes = it.attributes + (key to value)) }
@@ -184,6 +219,9 @@ fun ProductFormScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
     val schema by vm.schema.collectAsStateWithLifecycle()
     val categories by vm.categories.collectAsStateWithLifecycle()
     val units by vm.units.collectAsStateWithLifecycle()
+    val unitCategories by vm.unitCategories.collectAsStateWithLifecycle()
+    val unitErrors by vm.unitErrors.collectAsStateWithLifecycle()
+    var addingUnit by remember { mutableStateOf(false) }
     val warehouses by vm.warehouses.collectAsStateWithLifecycle()
     val me = LocalMe.current
     var more by remember { mutableStateOf(vm.editId != null) }
@@ -212,8 +250,9 @@ fun ProductFormScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
                     placeholder = "e.g. Basmati Rice 5 kg")
                 DropdownField("Category", categories, categories.firstOrNull { it.id == form.categoryId }, { vm.setCategory(it.id) },
                     { it.path.ifEmpty { it.name } }, error = e["categoryId"], noneLabel = "No category", onNone = { vm.setCategory(null) })
-                DropdownField("Unit of measurement", units, units.firstOrNull { it.id == form.unitId },
-                    { u -> vm.update { it.copy(unitId = u.id) } }, { "${it.name} (${it.code})" }, error = e["baseUnitId"], required = true)
+                UnitPickerField(units, unitCategories, form.unitId, { u -> vm.update { it.copy(unitId = u.id) } },
+                    error = e["baseUnitId"], required = true,
+                    onAddCustom = if (me?.can("CATEGORY_MANAGE") == true) ({ addingUnit = true }) else null)
                 FormField(form.sku, { v -> vm.update { it.copy(sku = v) } }, "Product code / SKU", error = e["sku"],
                     placeholder = "e.g. RICE-5KG", supporting = "Optional. Must be unique in your business.")
                 }
@@ -314,5 +353,10 @@ fun ProductFormScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
                 Spacer(Modifier.height(24.dp))
             }
         }
+    }
+    if (addingUnit) {
+        UnitDialog(null, unitCategories, unitErrors,
+            onSave = { code, name, dec, cat, factor -> vm.addUnit(code, name, dec, cat, factor) { addingUnit = false } },
+            onDismiss = { addingUnit = false; vm.clearUnitErrors() })
     }
 }

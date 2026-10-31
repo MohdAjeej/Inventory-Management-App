@@ -39,6 +39,9 @@ class SaleDetailViewModel(private val api: ApiService, saved: SavedStateHandle, 
     val state = _state.asStateFlow()
     private val _currency = MutableStateFlow("INR")
     val currency = _currency.asStateFlow()
+    /** Address, phone and tax id for the invoice header; null when this member can't read the business profile. */
+    private val _business = MutableStateFlow<Business?>(null)
+    val business = _business.asStateFlow()
     private val _busy = MutableStateFlow(false)
     val busy = _busy.asStateFlow()
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)
@@ -46,6 +49,7 @@ class SaleDetailViewModel(private val api: ApiService, saved: SavedStateHandle, 
 
     init {
         viewModelScope.launch { (apiCall { api.settings() } as? ApiResult.Ok)?.let { _currency.value = it.value.currencyCode } }
+        viewModelScope.launch { (apiCall { api.business() } as? ApiResult.Ok)?.let { _business.value = it.value } }
     }
 
     fun load() = _state.load(viewModelScope) { api.sale(id) }
@@ -99,6 +103,7 @@ fun SaleDetailScreen(onBack: () -> Unit, onReturn: (Long) -> Unit, onOpenProduct
     val vm = appViewModel { c, s -> SaleDetailViewModel(c.api, s, OfflineQueue(c)) }
     val state by vm.state.collectAsStateWithLifecycle()
     val currency by vm.currency.collectAsStateWithLifecycle()
+    val business by vm.business.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val me = LocalMe.current
     val context = LocalContext.current
@@ -118,7 +123,7 @@ fun SaleDetailScreen(onBack: () -> Unit, onReturn: (Long) -> Unit, onOpenProduct
                 state.data?.let { sale ->
                     IconButton(onClick = {
                         runCatching {
-                            val uri = ReceiptPdf.create(context, sale, me?.businessName ?: "", currency)
+                            val uri = ReceiptPdf.create(context, sale, business, me?.businessName ?: "", currency)
                             ExportSaver.open(context, uri, "application/pdf")
                         }.onFailure { e ->
                             android.widget.Toast.makeText(context, tr("Could not create the receipt: ${e.message}"),

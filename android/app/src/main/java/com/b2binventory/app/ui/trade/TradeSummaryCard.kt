@@ -62,7 +62,7 @@ fun TradeSummaryCard(onOpen: (String) -> Unit) {
     val c = MaterialTheme.appColors
     val active = s.pendingApprovals + s.awaitingBuyer + s.returnsToReview + s.incomingConnections + s.drafts > 0
 
-    SectionCard("Business invoices", actionLabel = "Network", onAction = { onOpen(Routes.NETWORK) }) {
+    SectionCard("Business invoices", actionLabel = "Network", onAction = { onOpen(Routes.NETWORK) }, contentPadding = 12.dp) {
         if (s.pendingApprovals > 0) {
             CountRow(Icons.Default.MarkEmailUnread, c.warning, "${s.pendingApprovals} purchase invoices need your approval",
                 highlight = true) { onOpen(Routes.tradeInvoices("PURCHASES")) }
@@ -98,7 +98,7 @@ fun TradeSummaryCard(onOpen: (String) -> Unit) {
 @Composable
 private fun CountRow(icon: ImageVector, tint: Color, text: String, highlight: Boolean = false, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconBadge(icon, tint, 36.dp)
+        IconBadge(icon, tint, 32.dp)
         Spacer(Modifier.width(12.dp))
         Text(text, Modifier.weight(1f), style = if (highlight) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium)
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline)

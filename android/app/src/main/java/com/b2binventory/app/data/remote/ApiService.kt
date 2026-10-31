@@ -45,7 +45,12 @@ interface ApiService {
     @DELETE("api/invitations/{id}") suspend fun cancelInvitation(@Path("id") id: Long): Response<Unit>
 
     // ---- units
-    @GET("api/units") suspend fun units(@Query("includeArchived") includeArchived: Boolean = false): List<UnitDto>
+    @GET("api/units") suspend fun units(
+        @Query("includeArchived") includeArchived: Boolean = false,
+        @Query("q") q: String? = null,
+        @Query("category") category: String? = null,
+    ): List<UnitDto>
+    @GET("api/unit-categories") suspend fun unitCategories(): List<UnitCategoryDto>
     @POST("api/units") suspend fun createUnit(@Body body: UnitRequest): UnitDto
     @PUT("api/units/{id}") suspend fun updateUnit(@Path("id") id: Long, @Body body: UnitRequest): UnitDto
     @POST("api/units/{id}/archive") suspend fun archiveUnit(@Path("id") id: Long): UnitDto

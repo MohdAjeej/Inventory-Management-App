@@ -20,6 +20,7 @@ import java.time.format.FormatStyle
 object Fmt {
     private val dateTime = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
     private val date = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+    private val dayMonth = DateTimeFormatter.ofPattern("d MMM")
 
     fun qty(value: Double): String = BigDecimal.valueOf(value).stripTrailingZeros().toPlainString()
 
@@ -32,6 +33,16 @@ object Fmt {
     fun date(iso: String?): String = iso?.let {
         runCatching { date.format(LocalDate.parse(it.take(10))) }.getOrDefault(it)
     } ?: ""
+
+    /** "1 Oct – 31 Oct" (one date when both are the same day); ISO dates in, empty when unknown. */
+    fun dateRange(from: String?, to: String?): String {
+        fun short(iso: String) = runCatching { dayMonth.format(LocalDate.parse(iso.take(10))) }.getOrDefault(iso)
+        return when {
+            from == null || to == null -> ""
+            from.take(10) == to.take(10) -> short(from)
+            else -> "${short(from)} – ${short(to)}"
+        }
+    }
 
     /** Amount in the business currency, e.g. "₹1,250.50". */
     fun money(value: Double, currencyCode: String): String = runCatching {

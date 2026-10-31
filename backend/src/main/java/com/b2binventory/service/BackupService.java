@@ -69,6 +69,12 @@ public class BackupService {
         root.put("schemaVersion", schemaVersion());
         root.put("exportedAt", Instant.now().toString());
         root.set("business", readRows("SELECT row_to_json(t) FROM businesses t WHERE id = ?", businessId).get(0));
+        // Standard units are shared, not owned: products refer to them by id, which differs between servers.
+        ArrayNode standardUnits = root.putArray("standardUnits");
+        jdbc.query("SELECT id, code FROM units WHERE business_id IS NULL ORDER BY id",
+                rs -> {
+                    standardUnits.addObject().put("id", rs.getLong(1)).put("code", rs.getString(2));
+                });
 
         ObjectNode tables = root.putObject("tables");
         for (String table : schema.order) {
@@ -137,6 +143,7 @@ public class BackupService {
                 Long.class, businessId, me.userId());
 
         Map<String, Map<Long, Long>> idMaps = new HashMap<>();
+        idMaps.put("units", standardUnitIds(backup));
         JsonNode tables = backup.get("tables");
         int rowCount = 0;
         for (String table : schema.order) {
@@ -173,10 +180,65 @@ public class BackupService {
             }
         }
 
+        mergeStandardUnits(businessId);
         auditService.record(businessId, membershipId, "BACKUP_RESTORED", "Business", businessId,
                 Map.of("sourceBusiness", name, "rows", rowCount,
                         "exportedAt", backup.path("exportedAt").asText("")));
         return authService.signInAs(membershipId);
+    }
+
+    /** The backup's standard unit ids mapped to this server's standard units with the same code. */
+    private Map<Long, Long> standardUnitIds(JsonNode backup) {
+        Map<String, Long> byCode = new HashMap<>();
+        jdbc.query("SELECT id, lower(code) FROM units WHERE business_id IS NULL",
+                rs -> {
+                    byCode.put(rs.getString(2), rs.getLong(1));
+                });
+        Map<Long, Long> ids = new HashMap<>();
+        backup.path("standardUnits").forEach(u -> {
+            Long id = byCode.get(u.path("code").asText().toLowerCase(Locale.ROOT));
+            if (id != null) ids.put(u.path("id").asLong(), id);
+        });
+        return ids;
+    }
+
+    /**
+     * Backups made before standard units existed hold the business's own copies (pcs, kg…). Like migration V5,
+     * a copy with the same code and decimal places is replaced by the standard unit so the list has no duplicates.
+     */
+    private void mergeStandardUnits(long businessId) {
+        jdbc.update("""
+                CREATE TEMPORARY TABLE IF NOT EXISTS restore_unit_merge (old_id BIGINT, new_id BIGINT) ON COMMIT DROP""");
+        jdbc.update("DELETE FROM restore_unit_merge");
+        jdbc.update("""
+                INSERT INTO restore_unit_merge
+                SELECT u.id, s.id FROM units u
+                JOIN units s ON s.business_id IS NULL AND s.decimals = u.decimals
+                    AND lower(s.code) = CASE lower(u.code) WHEN 'pack' THEN 'pac' WHEN 'sqm' THEN 'm²' ELSE lower(u.code) END
+                WHERE u.business_id = ?""", businessId);
+        // Conversions that would point a unit at itself, be built in, or duplicate another one go; the rest follow.
+        jdbc.update("""
+                DELETE FROM unit_conversions c WHERE c.business_id = ? AND (
+                    COALESCE((SELECT new_id FROM restore_unit_merge WHERE old_id = c.from_unit_id), c.from_unit_id)
+                        = COALESCE((SELECT new_id FROM restore_unit_merge WHERE old_id = c.to_unit_id), c.to_unit_id)
+                    OR (c.product_id IS NULL AND EXISTS (
+                        SELECT 1 FROM restore_unit_merge mf JOIN units sf ON sf.id = mf.new_id,
+                                      restore_unit_merge mt JOIN units st ON st.id = mt.new_id
+                        WHERE mf.old_id = c.from_unit_id AND mt.old_id = c.to_unit_id AND sf.category = st.category
+                          AND sf.base_factor IS NOT NULL AND st.base_factor IS NOT NULL)))""", businessId);
+        jdbc.update("""
+                DELETE FROM unit_conversions c WHERE c.business_id = ? AND EXISTS (
+                    SELECT 1 FROM unit_conversions o WHERE o.business_id = c.business_id AND o.id < c.id
+                      AND COALESCE(o.product_id, 0) = COALESCE(c.product_id, 0)
+                      AND COALESCE((SELECT new_id FROM restore_unit_merge WHERE old_id = o.from_unit_id), o.from_unit_id)
+                        = COALESCE((SELECT new_id FROM restore_unit_merge WHERE old_id = c.from_unit_id), c.from_unit_id)
+                      AND COALESCE((SELECT new_id FROM restore_unit_merge WHERE old_id = o.to_unit_id), o.to_unit_id)
+                        = COALESCE((SELECT new_id FROM restore_unit_merge WHERE old_id = c.to_unit_id), c.to_unit_id))""",
+                businessId);
+        jdbc.update("UPDATE unit_conversions c SET from_unit_id = m.new_id FROM restore_unit_merge m WHERE c.from_unit_id = m.old_id");
+        jdbc.update("UPDATE unit_conversions c SET to_unit_id = m.new_id FROM restore_unit_merge m WHERE c.to_unit_id = m.old_id");
+        jdbc.update("UPDATE products p SET base_unit_id = m.new_id FROM restore_unit_merge m WHERE p.base_unit_id = m.old_id");
+        jdbc.update("DELETE FROM units WHERE id IN (SELECT old_id FROM restore_unit_merge)");
     }
 
     private void validate(JsonNode backup) {

@@ -1,6 +1,7 @@
 package com.b2binventory.dto;
 
 import com.b2binventory.entity.FieldType;
+import com.b2binventory.entity.UnitCategory;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -11,13 +12,25 @@ public final class CatalogDtos {
     private CatalogDtos() {
     }
 
+    /** category defaults to OTHER; baseFactor is how many of the category's base unit one of this unit equals. */
     public record UnitRequest(
             @NotBlank(message = "Code is required") @Size(max = 20) String code,
             @NotBlank(message = "Name is required") @Size(max = 80) String name,
-            @Min(0) @Max(4) int decimals) {
+            @Min(0) @Max(4) int decimals,
+            UnitCategory category,
+            @DecimalMin(value = "0.000000000000001", message = "Must be positive") BigDecimal baseFactor) {
+
+        public UnitRequest(String code, String name, int decimals) {
+            this(code, name, decimals, null, null);
+        }
     }
 
-    public record UnitResponse(Long id, String code, String name, int decimals, boolean archived) {
+    /** standard: shared by every business and read-only. */
+    public record UnitResponse(Long id, String code, String name, int decimals, boolean archived,
+                               UnitCategory category, BigDecimal baseFactor, boolean standard) {
+    }
+
+    public record UnitCategoryResponse(UnitCategory code, String label, String baseUnitCode) {
     }
 
     public record ConversionRequest(

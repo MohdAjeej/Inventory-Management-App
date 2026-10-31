@@ -16,6 +16,8 @@ object Routes {
 
     const val PRODUCT = "product/{id}"
     const val PRODUCT_NEW = "product-new"
+    /** Add Product opened from Record Sale: saving returns the new product to the sale instead of opening it. */
+    const val PRODUCT_NEW_FOR_SALE = "product-new-for-sale"
     const val PRODUCT_EDIT = "product/{id}/edit"
     const val STOCK_OPERATION = "stock-operation?productId={productId}&type={type}"
     const val SALE_NEW = "sale-new?productId={productId}"

@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -39,6 +38,7 @@ import com.b2binventory.app.ui.products.ProductListScreen
 import com.b2binventory.app.ui.reports.ReportsScreen
 import com.b2binventory.app.ui.sales.PurchaseDetailScreen
 import com.b2binventory.app.ui.sales.RecordPurchaseScreen
+import com.b2binventory.app.ui.sales.CREATED_PRODUCT_ID
 import com.b2binventory.app.ui.sales.RecordSaleScreen
 import com.b2binventory.app.ui.sales.ReturnScreen
 import com.b2binventory.app.ui.sales.SaleDetailScreen
@@ -132,13 +132,11 @@ fun InventoryNavHost() {
 
                 composable(Routes.HOME) {
                     DashboardScreen(
-                        onOpenProducts = { status -> nav.navigateTab(Routes.products(status)) },
+                        // A filtered shortcut (Low stock…) opens fresh so the filter applies instead of the tab's saved state.
+                        onOpenProducts = { status -> nav.openTab(Routes.products(status), restore = status == null) },
                         onOpenProduct = { nav.navigate(Routes.product(it)) },
                         onAddProduct = { nav.navigate(Routes.PRODUCT_NEW) },
-                        onStockOperation = { type -> nav.navigate(Routes.stockOperation(type = type)) },
-                        onRecordSale = { nav.navigate(Routes.saleNew()) },
-                        onRecordPurchase = { nav.navigate(Routes.purchaseNew()) },
-                        onReports = { nav.navigateTab(Routes.REPORTS) },
+                        onReports = { nav.openTab(Routes.REPORTS) },
                         onStockActivity = { nav.navigate(Routes.STOCK) },
                         onNotifications = { nav.navigate(Routes.NOTIFICATIONS) },
                         onTrade = { nav.navigate(it) },
@@ -165,7 +163,7 @@ fun InventoryNavHost() {
                         onOpenProduct = { nav.navigate(Routes.product(it)) },
                         onStockCounts = { nav.navigate(Routes.COUNTS) },
                         onRecordSale = { nav.navigate(Routes.saleNew()) },
-                        onSales = { nav.navigateTab(Routes.SALES) },
+                        onSales = { nav.openTab(Routes.SALES) },
                     )
                 }
                 composable(Routes.SALES) {
@@ -226,9 +224,22 @@ fun InventoryNavHost() {
                     arguments = listOf(navArgument("productId") { type = NavType.StringType; nullable = true; defaultValue = null }),
                 ) {
                     // After saving, show the sale (receipt) instead of the form.
-                    RecordSaleScreen(onBack = { nav.popBackStack() }, onSaved = { id ->
-                        nav.navigate(Routes.sale(id, recorded = true)) { popUpTo(Routes.SALE_NEW) { inclusive = true } }
-                    })
+                    RecordSaleScreen(
+                        onBack = { nav.popBackStack() },
+                        onSaved = { id ->
+                            nav.navigate(Routes.sale(id, recorded = true)) { popUpTo(Routes.SALE_NEW) { inclusive = true } }
+                        },
+                        onCreateProduct = { nav.navigate(Routes.PRODUCT_NEW_FOR_SALE) { launchSingleTop = true } },
+                    )
+                }
+                composable(Routes.PRODUCT_NEW_FOR_SALE) {
+                    ProductFormScreen(
+                        onBack = { nav.popBackStack() },
+                        onSaved = { id ->
+                            nav.previousBackStackEntry?.savedStateHandle?.set(CREATED_PRODUCT_ID, id)
+                            nav.popBackStack()
+                        },
+                    )
                 }
                 composable(
                     Routes.SALE,
@@ -346,22 +357,30 @@ fun InventoryNavHost() {
     }
 }
 
-private fun NavHostController.navigateTab(route: String) {
+/**
+ * Opens a main tab (bottom bar, side rail or a dashboard shortcut). Home is the root of the signed-in back stack:
+ * other tabs sit directly on top of it, so each keeps its own state and Back from any tab returns Home.
+ *
+ * Home is reached by popping back to it, never by navigate(HOME) with restoreState: a non-inclusive
+ * popUpTo(HOME) { saveState = true } files the left tab's stack under Home's id, so "restoring" Home would
+ * bring that tab straight back and the Home tab would appear to do nothing.
+ */
+private fun NavHostController.openTab(route: String, restore: Boolean = true) {
+    if (route == Routes.HOME) {
+        if (!popBackStack(Routes.HOME, inclusive = false, saveState = true)) {
+            navigate(Routes.HOME) { popUpTo(0) { inclusive = true } }
+        }
+        return
+    }
     navigate(route) {
-        popUpTo(graph.findStartDestination().id) { saveState = true }
+        popUpTo(Routes.HOME) { saveState = true }
         launchSingleTop = true
-        restoreState = true
+        restoreState = restore
     }
 }
 
 private fun NavHostController.openTab(tab: Tab, currentRoute: String?) {
-    if (currentRoute != tab.route) {
-        navigate(tab.navRoute) {
-            popUpTo(Routes.HOME) { saveState = true }
-            launchSingleTop = true
-            restoreState = true
-        }
-    }
+    if (currentRoute != tab.route) openTab(tab.navRoute)
 }
 
 @Composable
@@ -388,20 +407,11 @@ private fun SideRail(nav: NavHostController, currentRoute: String?) {
 
 @Composable
 private fun BottomBar(nav: NavHostController, currentRoute: String?) {
-    val me = LocalMe.current
     NavigationBar {
-        tabs.filter { t -> t.permissions.isEmpty() || t.permissions.any { me?.can(it) == true } }.forEach { tab ->
+        visibleTabs().forEach { tab ->
             NavigationBarItem(
                 selected = currentRoute == tab.route,
-                onClick = {
-                    if (currentRoute != tab.route) {
-                        nav.navigate(tab.navRoute) {
-                            popUpTo(Routes.HOME) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                },
+                onClick = { nav.openTab(tab, currentRoute) },
                 icon = { Icon(tab.icon, contentDescription = tab.label) },
                 label = { Text(tab.label) },
             )

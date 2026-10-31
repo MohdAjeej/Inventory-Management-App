@@ -100,6 +100,13 @@ class RecordSaleViewModel(val api: ApiService, saved: SavedStateHandle, private 
             (apiCall { api.customers() } as? ApiResult.Ok)?.let { _customers.value = it.value }
         }
         saved.get<String>("productId")?.toLongOrNull()?.let(::addProduct)
+        // A product created from this sale (Add Product flow) comes back here and is added as a line.
+        viewModelScope.launch {
+            saved.getStateFlow<Long?>(CREATED_PRODUCT_ID, null).filterNotNull().collect { id ->
+                saved[CREATED_PRODUCT_ID] = null
+                addProduct(id)
+            }
+        }
     }
 
     fun addProduct(productId: Long) {
@@ -254,10 +261,13 @@ class RecordSaleViewModel(val api: ApiService, saved: SavedStateHandle, private 
     }
 }
 
+/** Saved-state key the Add Product flow uses to hand a new product back to Record Sale. */
+const val CREATED_PRODUCT_ID = "createdProductId"
+
 fun serialList(text: String): List<String> = text.split('\n', ',').map { it.trim() }.filter { it.isNotEmpty() }.distinct()
 
 @Composable
-fun RecordSaleScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
+fun RecordSaleScreen(onBack: () -> Unit, onSaved: (Long) -> Unit, onCreateProduct: () -> Unit = {}) {
     val vm = appViewModel { c, s -> RecordSaleViewModel(c.api, s, OfflineQueue(c)) }
     val lines by vm.lines.collectAsStateWithLifecycle()
     val header by vm.header.collectAsStateWithLifecycle()
@@ -355,7 +365,8 @@ fun RecordSaleScreen(onBack: () -> Unit, onSaved: (Long) -> Unit) {
     }
 
     if (picking) {
-        ProductPickerDialog(vm.api, "Add product to sale", onPick = { picking = false; vm.addProduct(it.id) }, onDismiss = { picking = false })
+        ProductPickerDialog(vm.api, "Add product to sale", onPick = { picking = false; vm.addProduct(it.id) }, onDismiss = { picking = false },
+            onCreateNew = if (me?.can("PRODUCT_CREATE") == true) ({ picking = false; onCreateProduct() }) else null)
     }
     if (state.reviewing) {
         val total = vm.total()
