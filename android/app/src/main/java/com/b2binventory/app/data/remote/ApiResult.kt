@@ -37,7 +37,7 @@ suspend fun <T> apiCall(block: suspend () -> T): ApiResult<T> = try {
     Log.w(TAG, "Request to ${BuildConfig.API_BASE_URL} failed", e)
     e.toNetworkErr()
 } catch (e: kotlinx.serialization.SerializationException) {
-    Log.w(TAG, "Unexpected response", e)
+    Log.w(TAG, "Unexpected response")
     ApiResult.Err("Unexpected response from the server.")
 } catch (e: Exception) {
     Log.w(TAG, "Request failed", e)
